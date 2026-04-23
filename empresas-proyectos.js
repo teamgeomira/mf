@@ -5,7 +5,6 @@
 
 // Referens till Firebase-databasen (initieras i index.html)
 let db = null;
-let currentUserId = "admin";
 let onEmpresasChangedCallback = null;
 
 // Initiera modulen med Firebase-databasreferens
@@ -23,7 +22,7 @@ async function getEmpresas() {
         return [];
     }
     try {
-        const snapshot = await db.ref(`empresas/${currentUserId}`).once('value');
+        const snapshot = await db.ref(`empresas`).once('value');
         const data = snapshot.val();
         console.log("📊 Data från Firebase (empresas):", data);
         if (data && typeof data === 'object') {
@@ -45,7 +44,7 @@ async function getProyectos(empresa) {
         return [];
     }
     try {
-        const snapshot = await db.ref(`empresas/${currentUserId}/${empresa}`).once('value');
+        const snapshot = await db.ref(`empresas/${empresa}`).once('value');
         const proyectos = snapshot.val();
         console.log(`📊 Projekt för ${empresa}:`, proyectos);
         if (proyectos && Array.isArray(proyectos)) {
@@ -94,13 +93,13 @@ async function agregarEmpresa(empresa) {
     try {
         const empresaClean = empresa.trim();
         // Kontrollera om företaget redan finns
-        const existing = await db.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
+        const existing = await db.ref(`empresas/${empresaClean}`).once('value');
         if (existing.exists()) {
             console.log(`⚠️ Företag "${empresaClean}" finns redan`);
             return false;
         }
         // Skapa företaget med en tom array för projekt
-        await db.ref(`empresas/${currentUserId}/${empresaClean}`).set([]);
+        await db.ref(`empresas/${empresaClean}`).set([]);
         console.log(`✅ Företag "${empresaClean}" har lagts till i Firebase`);
         
         // Uppdatera dropdowns om callback finns
@@ -127,7 +126,7 @@ async function agregarProyecto(empresa, proyecto) {
     try {
         const empresaClean = empresa.trim();
         const proyectoClean = proyecto.trim();
-        const snapshot = await db.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
+        const snapshot = await db.ref(`empresas/${empresaClean}`).once('value');
         let proyectos = snapshot.val() || [];
         
         if (!Array.isArray(proyectos)) {
@@ -141,7 +140,7 @@ async function agregarProyecto(empresa, proyecto) {
         
         proyectos.push(proyectoClean);
         proyectos.sort();
-        await db.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
+        await db.ref(`empresas/${empresaClean}`).set(proyectos);
         console.log(`✅ Projekt "${proyectoClean}" har lagts till under ${empresaClean}`);
         
         if (onEmpresasChangedCallback) {
@@ -165,11 +164,11 @@ async function editarEmpresa(oldName, newName) {
     if (!db) return false;
     try {
         const newNameClean = newName.trim();
-        const snapshot = await db.ref(`empresas/${currentUserId}/${oldName}`).once('value');
+        const snapshot = await db.ref(`empresas/${oldName}`).once('value');
         const proyectos = snapshot.val() || [];
         
-        await db.ref(`empresas/${currentUserId}/${newNameClean}`).set(proyectos);
-        await db.ref(`empresas/${currentUserId}/${oldName}`).remove();
+        await db.ref(`empresas/${newNameClean}`).set(proyectos);
+        await db.ref(`empresas/${oldName}`).remove();
         console.log(`✅ Företag "${oldName}" har bytt namn till "${newNameClean}"`);
         
         if (onEmpresasChangedCallback) {
@@ -194,7 +193,7 @@ async function editarProyecto(empresa, oldProyecto, newProyecto) {
     try {
         const empresaClean = empresa.trim();
         const newProyectoClean = newProyecto.trim();
-        const snapshot = await db.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
+        const snapshot = await db.ref(`empresas/${empresaClean}`).once('value');
         let proyectos = snapshot.val() || [];
         
         if (!Array.isArray(proyectos)) {
@@ -211,7 +210,7 @@ async function editarProyecto(empresa, oldProyecto, newProyecto) {
         
         proyectos[index] = newProyectoClean;
         proyectos.sort();
-        await db.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
+        await db.ref(`empresas/${empresaClean}`).set(proyectos);
         console.log(`✅ Projekt "${oldProyecto}" har bytt namn till "${newProyectoClean}"`);
         
         if (onEmpresasChangedCallback) {
@@ -231,7 +230,7 @@ async function eliminarEmpresa(empresa) {
     }
     if (!db) return false;
     try {
-        await db.ref(`empresas/${currentUserId}/${empresa}`).remove();
+        await db.ref(`empresas/${empresa}`).remove();
         console.log(`✅ Företag "${empresa}" har tagits bort`);
         
         if (onEmpresasChangedCallback) {
@@ -252,7 +251,7 @@ async function eliminarProyecto(empresa, proyecto) {
     if (!db) return false;
     try {
         const empresaClean = empresa.trim();
-        const snapshot = await db.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
+        const snapshot = await db.ref(`empresas/${empresaClean}`).once('value');
         let proyectos = snapshot.val() || [];
         
         if (!Array.isArray(proyectos)) {
@@ -265,7 +264,7 @@ async function eliminarProyecto(empresa, proyecto) {
         }
         
         proyectos.splice(index, 1);
-        await db.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
+        await db.ref(`empresas/${empresaClean}`).set(proyectos);
         console.log(`✅ Projekt "${proyecto}" har tagits bort från ${empresaClean}`);
         
         if (onEmpresasChangedCallback) {
