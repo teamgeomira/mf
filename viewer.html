@@ -33,6 +33,42 @@
         .footer a { color: #2c7cb6; text-decoration: none; font-weight: 500; }
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
         @media (max-width: 768px) { body { padding: 1rem; } .files-grid { grid-template-columns: 1fr; } }
+        
+        /* Modal para vista previa de PDF */
+        .modal-preview {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content-preview {
+            background: white;
+            border-radius: 1rem;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+            padding: 1rem;
+        }
+        .modal-content-preview iframe, .modal-content-preview img, .modal-content-preview video {
+            max-width: 100%;
+            max-height: 80vh;
+        }
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -45,6 +81,15 @@
     <div id="content"><div class="loading"><i class="fas fa-spinner fa-pulse"></i><p>Hämtar dokument från databasen...</p></div></div>
     <div class="footer"><i class="fas fa-chart-line"></i> Teknik från <a href="https://geomira.se/index.html" target="_blank">Geomira</a> – din partner inom GIS och digitala lösningar</div>
 </div>
+
+<!-- Modal för visning -->
+<div id="previewModal" class="modal-preview">
+    <div class="modal-content-preview">
+        <span class="close-modal" onclick="closePreviewModal()">&times;</span>
+        <div id="previewContent"></div>
+    </div>
+</div>
+
 <div id="toast" class="toast">✅ Klart</div>
 
 <script>
@@ -93,28 +138,55 @@
     function getFileIconAndColor(filename) {
         const ext = filename.split('.').pop().toLowerCase();
         switch (ext) {
-            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c', canView: true };
-            case 'dwg': return { icon: 'fa-draw-polygon', color: '#e67e22', canView: false };
-            case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22', canView: false };
+            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c' };
+            case 'dwg': return { icon: 'fa-draw-polygon', color: '#e67e22' };
+            case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22' };
             case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': 
-                return { icon: 'fa-file-image', color: '#3498db', canView: true };
+                return { icon: 'fa-file-image', color: '#3498db' };
             case 'mp4': case 'webm': case 'mov': case 'avi': 
-                return { icon: 'fa-file-video', color: '#9b59b6', canView: true };
+                return { icon: 'fa-file-video', color: '#9b59b6' };
             case 'zip': case 'rar': case '7z': 
-                return { icon: 'fa-file-archive', color: '#f39c12', canView: false };
+                return { icon: 'fa-file-archive', color: '#f39c12' };
             case 'doc': case 'docx': 
-                return { icon: 'fa-file-word', color: '#2980b9', canView: false };
+                return { icon: 'fa-file-word', color: '#2980b9' };
             case 'xls': case 'xlsx': case 'csv': 
-                return { icon: 'fa-file-excel', color: '#27ae60', canView: false };
+                return { icon: 'fa-file-excel', color: '#27ae60' };
             case 'ppt': case 'pptx': 
-                return { icon: 'fa-file-powerpoint', color: '#e67e22', canView: false };
-            default: return { icon: 'fa-file', color: '#5a8eb0', canView: false };
+                return { icon: 'fa-file-powerpoint', color: '#e67e22' };
+            default: return { icon: 'fa-file', color: '#5a8eb0' };
         }
     }
 
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+
+    function closePreviewModal() {
+        document.getElementById('previewModal').style.display = 'none';
+        document.getElementById('previewContent').innerHTML = '';
+    }
+
+    // Función para ver archivo en modal (mantiene el nombre correcto)
+    function viewFileInModal(url, filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const previewDiv = document.getElementById('previewContent');
+        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+        const videoExts = ['mp4', 'webm', 'mov', 'avi'];
+        
+        if (ext === 'pdf') {
+            // Para PDF usar iframe
+            previewDiv.innerHTML = `<iframe src="${url}" style="width:100%; height:80vh;" frameborder="0"></iframe>`;
+        } else if (imageExts.includes(ext)) {
+            previewDiv.innerHTML = `<img src="${url}" alt="${filename}" style="max-width:100%; max-height:80vh;">`;
+        } else if (videoExts.includes(ext)) {
+            previewDiv.innerHTML = `<video controls style="max-width:100%; max-height:80vh;"><source src="${url}" type="video/${ext}">Din webbläsare stödjer inte videouppspelning.</video>`;
+        } else {
+            // Para archivos que no se pueden ver, descargar directamente con nombre original
+            downloadFile(url, filename);
+            return;
+        }
+        document.getElementById('previewModal').style.display = 'flex';
     }
 
     // Función para descargar archivo con nombre original
@@ -137,17 +209,6 @@
             console.error(error);
             showToast('❌ Kunde inte ladda ner filen', true);
         }
-    }
-
-    // Función para ver archivo (solo para formatos que el navegador puede mostrar)
-    function viewFile(url, filename, canView) {
-        if (!canView) {
-            // Si no se puede ver, descargar directamente
-            downloadFile(url, filename);
-            return;
-        }
-        // Para PDF, imágenes, videos: abrir en nueva pestaña
-        window.open(url, '_blank');
     }
 
     async function loadFromFirebase() {
@@ -181,7 +242,7 @@
         const filesArray = Object.values(data.files);
         let html = `<div class="files-grid">`;
         for (const file of filesArray) {
-            const { icon, color, canView } = getFileIconAndColor(file.filename);
+            const { icon, color } = getFileIconAndColor(file.filename);
             html += `
                 <div class="file-card">
                     <div class="file-icon" style="color:${color};"><i class="fas ${icon} fa-2x"></i></div>
@@ -191,8 +252,8 @@
                         <span><i class="fas fa-calendar"></i> ${new Date(file.date).toLocaleDateString('sv-SE')}</span>
                     </div>
                     <div class="file-actions">
-                        <button class="btn btn-view" onclick="viewFile('${file.previewUrl}', '${escapeHtml(file.filename)}', ${canView})">
-                            <i class="fas fa-eye"></i> ${canView ? 'Visa' : 'Ladda ner'}
+                        <button class="btn btn-view" onclick="viewFileInModal('${file.previewUrl}', '${escapeHtml(file.filename)}')">
+                            <i class="fas fa-eye"></i> Visa
                         </button>
                         <button class="btn btn-download" onclick="downloadFile('${file.downloadUrl}', '${escapeHtml(file.filename)}')">
                             <i class="fas fa-download"></i> Ladda ner
