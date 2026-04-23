@@ -1,69 +1,85 @@
 // ============================================
-// GESTIÓN DE EMPRESAS Y PROYECTOS
-// TODO EN FIREBASE REALTIME DATABASE
+// GESTION AV FÖRETAG OCH PROJEKT
+// ALL DATA SPARAS I FIREBASE REALTIME DATABASE
 // ============================================
 
-// Referencia a la base de datos (se inicializa en index.html)
+// Referens till Firebase-databasen (initieras i index.html)
 let dbRef = null;
-let currentUserId = "admin"; // Usuario fijo para este sistema
+const currentUserId = "admin"; // Fast användar-ID för detta system
 
-// Inicializar la referencia a Firebase
+// Initiera modulen med Firebase-databasreferens
 function initEmpresasProyectos(databaseRef) {
     dbRef = databaseRef;
+    console.log("✅ Företags- och projektmodul initierad med Firebase");
 }
 
-// Obtener todas las empresas desde Firebase
+// Hämta alla företag från Firebase
 async function getEmpresas() {
-    if (!dbRef) return [];
+    if (!dbRef) {
+        console.error("Databasreferens saknas");
+        return [];
+    }
     try {
         const snapshot = await dbRef.ref(`empresas/${currentUserId}`).once('value');
         const data = snapshot.val();
-        return data ? Object.keys(data).sort() : [];
+        if (data) {
+            return Object.keys(data).sort();
+        }
+        return [];
     } catch (error) {
         console.error('Fel vid hämtning av företag:', error);
         return [];
     }
 }
 
-// Obtener todos los proyectos desde Firebase
+// Hämta alla projekt för ett specifikt företag från Firebase
 async function getProyectos(empresa) {
-    if (!dbRef || !empresa) return [];
+    if (!dbRef || !empresa) {
+        return [];
+    }
     try {
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresa}`).once('value');
         const proyectos = snapshot.val();
-        return proyectos ? Object.values(proyectos).sort() : [];
+        if (proyectos) {
+            return Object.values(proyectos).sort();
+        }
+        return [];
     } catch (error) {
         console.error('Fel vid hämtning av projekt:', error);
         return [];
     }
 }
 
-// Obtener todos los proyectos (sin filtrar por empresa)
+// Hämta alla projekt från alla företag
 async function getAllProyectos() {
-    if (!dbRef) return [];
+    if (!dbRef) {
+        return [];
+    }
     try {
         const empresas = await getEmpresas();
-        const todosProyectos = [];
+        const allaProjekt = [];
         for (const empresa of empresas) {
-            const proyectos = await getProyectos(empresa);
-            for (const proyecto of proyectos) {
-                todosProyectos.push({ empresa, proyecto });
+            const projekt = await getProyectos(empresa);
+            for (const proj of projekt) {
+                allaProjekt.push({ empresa, projekt: proj });
             }
         }
-        return todosProyectos;
+        return allaProjekt;
     } catch (error) {
         console.error('Fel vid hämtning av alla projekt:', error);
         return [];
     }
 }
 
-// Agregar nueva empresa
+// Lägg till ett nytt företag i Firebase
 async function agregarEmpresa(empresa) {
-    if (!empresa || empresa.trim() === "") return false;
+    if (!empresa || empresa.trim() === "") {
+        return false;
+    }
     try {
         const empresaClean = empresa.trim();
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set([]);
-        console.log(`✅ Företag "${empresaClean}" tillagt`);
+        console.log(`✅ Företag "${empresaClean}" har lagts till`);
         return true;
     } catch (error) {
         console.error('Fel vid tillägg av företag:', error);
@@ -71,19 +87,25 @@ async function agregarEmpresa(empresa) {
     }
 }
 
-// Agregar proyecto a una empresa
+// Lägg till ett nytt projekt i Firebase
 async function agregarProyecto(empresa, proyecto) {
-    if (!empresa || !proyecto || proyecto.trim() === "") return false;
+    if (!empresa || !proyecto || proyecto.trim() === "") {
+        return false;
+    }
     try {
         const empresaClean = empresa.trim();
         const proyectoClean = proyecto.trim();
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
         const proyectos = snapshot.val() || [];
-        if (proyectos.includes(proyectoClean)) return false;
+        
+        if (proyectos.includes(proyectoClean)) {
+            return false;
+        }
+        
         proyectos.push(proyectoClean);
         proyectos.sort();
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
-        console.log(`✅ Projekt "${proyectoClean}" tillagt till ${empresaClean}`);
+        console.log(`✅ Projekt "${proyectoClean}" har lagts till under ${empresaClean}`);
         return true;
     } catch (error) {
         console.error('Fel vid tillägg av projekt:', error);
@@ -91,17 +113,22 @@ async function agregarProyecto(empresa, proyecto) {
     }
 }
 
-// Editar nombre de empresa
+// Redigera namn på ett företag i Firebase
 async function editarEmpresa(oldName, newName) {
-    if (!oldName || !newName || newName.trim() === "") return false;
-    if (oldName === newName.trim()) return true;
+    if (!oldName || !newName || newName.trim() === "") {
+        return false;
+    }
+    if (oldName === newName.trim()) {
+        return true;
+    }
     try {
         const newNameClean = newName.trim();
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${oldName}`).once('value');
         const proyectos = snapshot.val() || [];
+        
         await dbRef.ref(`empresas/${currentUserId}/${newNameClean}`).set(proyectos);
         await dbRef.ref(`empresas/${currentUserId}/${oldName}`).remove();
-        console.log(`✅ Företag "${oldName}" ändrat till "${newNameClean}"`);
+        console.log(`✅ Företag "${oldName}" har bytt namn till "${newNameClean}"`);
         return true;
     } catch (error) {
         console.error('Fel vid redigering av företag:', error);
@@ -109,22 +136,32 @@ async function editarEmpresa(oldName, newName) {
     }
 }
 
-// Editar nombre de proyecto
+// Redigera namn på ett projekt i Firebase
 async function editarProyecto(empresa, oldProyecto, newProyecto) {
-    if (!empresa || !oldProyecto || !newProyecto || newProyecto.trim() === "") return false;
-    if (oldProyecto === newProyecto.trim()) return true;
+    if (!empresa || !oldProyecto || !newProyecto || newProyecto.trim() === "") {
+        return false;
+    }
+    if (oldProyecto === newProyecto.trim()) {
+        return true;
+    }
     try {
         const empresaClean = empresa.trim();
         const newProyectoClean = newProyecto.trim();
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
         const proyectos = snapshot.val() || [];
+        
         const index = proyectos.indexOf(oldProyecto);
-        if (index === -1) return false;
-        if (proyectos.includes(newProyectoClean)) return false;
+        if (index === -1) {
+            return false;
+        }
+        if (proyectos.includes(newProyectoClean)) {
+            return false;
+        }
+        
         proyectos[index] = newProyectoClean;
         proyectos.sort();
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
-        console.log(`✅ Projekt "${oldProyecto}" ändrat till "${newProyectoClean}"`);
+        console.log(`✅ Projekt "${oldProyecto}" har bytt namn till "${newProyectoClean}"`);
         return true;
     } catch (error) {
         console.error('Fel vid redigering av projekt:', error);
@@ -132,12 +169,14 @@ async function editarProyecto(empresa, oldProyecto, newProyecto) {
     }
 }
 
-// Eliminar empresa
+// Ta bort ett företag från Firebase
 async function eliminarEmpresa(empresa) {
-    if (!empresa) return false;
+    if (!empresa) {
+        return false;
+    }
     try {
         await dbRef.ref(`empresas/${currentUserId}/${empresa}`).remove();
-        console.log(`✅ Företag "${empresa}" borttaget`);
+        console.log(`✅ Företag "${empresa}" har tagits bort`);
         return true;
     } catch (error) {
         console.error('Fel vid borttagning av företag:', error);
@@ -145,18 +184,24 @@ async function eliminarEmpresa(empresa) {
     }
 }
 
-// Eliminar proyecto
+// Ta bort ett projekt från Firebase
 async function eliminarProyecto(empresa, proyecto) {
-    if (!empresa || !proyecto) return false;
+    if (!empresa || !proyecto) {
+        return false;
+    }
     try {
         const empresaClean = empresa.trim();
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
         const proyectos = snapshot.val() || [];
+        
         const index = proyectos.indexOf(proyecto);
-        if (index === -1) return false;
+        if (index === -1) {
+            return false;
+        }
+        
         proyectos.splice(index, 1);
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
-        console.log(`✅ Projekt "${proyecto}" borttaget från ${empresaClean}`);
+        console.log(`✅ Projekt "${proyecto}" har tagits bort från ${empresaClean}`);
         return true;
     } catch (error) {
         console.error('Fel vid borttagning av projekt:', error);
@@ -164,29 +209,43 @@ async function eliminarProyecto(empresa, proyecto) {
     }
 }
 
-// Filtrera företag (sökning)
+// Filtrera företag baserat på sökterm
 async function filtrarEmpresas(searchTerm) {
     const empresas = await getEmpresas();
-    if (!searchTerm) return empresas;
+    if (!searchTerm) {
+        return empresas;
+    }
     return empresas.filter(emp => emp.toLowerCase().includes(searchTerm.toLowerCase()));
 }
 
-// Filtrera projekt (sökning)
+// Filtrera projekt baserat på sökterm
 async function filtrarProyectos(empresa, searchTerm) {
     const proyectos = await getProyectos(empresa);
-    if (!searchTerm) return proyectos;
+    if (!searchTerm) {
+        return proyectos;
+    }
     return proyectos.filter(proj => proj.toLowerCase().includes(searchTerm.toLowerCase()));
 }
 
-// ========== MODAL FÖR HANTERING ==========
+// ========== MODALT FÖNSTER FÖR HANTERING AV FÖRETAG OCH PROJEKT ==========
 function mostrarModalGestion(onCloseCallback) {
+    // Skapa modal-elementet
     const modal = document.createElement('div');
     modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7); display: flex; justify-content: center;
-        align-items: center; z-index: 2000; backdrop-filter: blur(3px);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(3px);
     `;
     
+    // Funktion för att rendera listan över företag och projekt
     const renderLista = async () => {
         const empresas = await getEmpresas();
         let html = `<div style="max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">`;
@@ -198,8 +257,12 @@ function mostrarModalGestion(onCloseCallback) {
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                         <strong><i class="fas fa-building"></i> ${escapeHtml(emp)}</strong>
                         <div>
-                            <button class="edit-empresa-btn" data-emp="${escapeHtml(emp)}" style="background: #eef3fc; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; margin-right: 0.3rem;"><i class="fas fa-edit"></i></button>
-                            <button class="delete-empresa-btn" data-emp="${escapeHtml(emp)}" style="background: #fee2e2; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; color: #b91c2c;"><i class="fas fa-trash"></i></button>
+                            <button class="edit-empresa-btn" data-emp="${escapeHtml(emp)}" style="background: #eef3fc; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; margin-right: 0.3rem;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-empresa-btn" data-emp="${escapeHtml(emp)}" style="background: #fee2e2; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; color: #b91c2c;">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                     <div style="margin-left: 1rem;">
@@ -211,29 +274,41 @@ function mostrarModalGestion(onCloseCallback) {
                     <li style="margin-bottom: 0.3rem; display: flex; justify-content: space-between; align-items: center;">
                         <span>📁 ${escapeHtml(proj)}</span>
                         <div>
-                            <button class="edit-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #eef3fc; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem;"><i class="fas fa-edit"></i></button>
-                            <button class="delete-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #fee2e2; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem; color:#b91c2c;"><i class="fas fa-trash"></i></button>
+                            <button class="edit-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #eef3fc; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #fee2e2; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem; color:#b91c2c;">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </li>
                 `;
             }
             html += `
                         </ul>
-                        <button class="add-proyecto-btn" data-emp="${escapeHtml(emp)}" style="margin-top: 0.5rem; background: #e2e8f0; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size:0.7rem;"><i class="fas fa-plus"></i> Lägg till projekt</button>
+                        <button class="add-proyecto-btn" data-emp="${escapeHtml(emp)}" style="margin-top: 0.5rem; background: #e2e8f0; border: none; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size:0.7rem;">
+                            <i class="fas fa-plus"></i> Lägg till projekt
+                        </button>
                     </div>
                 </div>
             `;
         }
         html += `</div>`;
         html += `<div style="display: flex; justify-content: space-between; gap: 1rem;">
-                    <button id="addEmpresaModalBtn" style="background: #2c7cb6; color: white; border: none; padding: 0.6rem 1rem; border-radius: 2rem; flex:1;"><i class="fas fa-plus-circle"></i> Nytt företag</button>
-                    <button id="closeModalBtn" style="background: #e2e8f0; border: none; padding: 0.6rem 1rem; border-radius: 2rem;">Stäng</button>
+                    <button id="addEmpresaModalBtn" style="background: #2c7cb6; color: white; border: none; padding: 0.6rem 1rem; border-radius: 2rem; flex:1;">
+                        <i class="fas fa-plus-circle"></i> Nytt företag
+                    </button>
+                    <button id="closeModalBtn" style="background: #e2e8f0; border: none; padding: 0.6rem 1rem; border-radius: 2rem;">
+                        Stäng
+                    </button>
                 </div>`;
         
         const contentDiv = modal.querySelector('.modal-content');
-        if (contentDiv) contentDiv.innerHTML = html;
+        if (contentDiv) {
+            contentDiv.innerHTML = html;
+        }
         
-        // Bind events
+        // Bind events för alla knappar
         modal.querySelectorAll('.edit-empresa-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const oldName = btn.getAttribute('data-emp');
@@ -306,23 +381,29 @@ function mostrarModalGestion(onCloseCallback) {
             });
         });
         
-        modal.querySelector('#addEmpresaModalBtn').addEventListener('click', async () => {
-            const newEmp = prompt("Nytt företagsnamn:");
-            if (newEmp) {
-                const success = await agregarEmpresa(newEmp);
-                if (success) {
-                    await renderLista();
-                    if (onCloseCallback) onCloseCallback();
-                } else {
-                    alert("Företaget finns redan eller ogiltigt namn.");
+        const addEmpresaBtn = modal.querySelector('#addEmpresaModalBtn');
+        if (addEmpresaBtn) {
+            addEmpresaBtn.addEventListener('click', async () => {
+                const newEmp = prompt("Nytt företagsnamn:");
+                if (newEmp) {
+                    const success = await agregarEmpresa(newEmp);
+                    if (success) {
+                        await renderLista();
+                        if (onCloseCallback) onCloseCallback();
+                    } else {
+                        alert("Företaget finns redan eller ogiltigt namn.");
+                    }
                 }
-            }
-        });
+            });
+        }
         
-        modal.querySelector('#closeModalBtn').addEventListener('click', () => {
-            modal.remove();
-            if (onCloseCallback) onCloseCallback();
-        });
+        const closeBtn = modal.querySelector('#closeModalBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.remove();
+                if (onCloseCallback) onCloseCallback();
+            });
+        }
     };
     
     modal.innerHTML = `<div class="modal-content" style="background: white; border-radius: 1.5rem; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; padding: 1.5rem;"></div>`;
@@ -330,8 +411,13 @@ function mostrarModalGestion(onCloseCallback) {
     renderLista();
 }
 
-// Helper för escaping
+// Hjälpfunktion för att escapeta HTML-kod
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
