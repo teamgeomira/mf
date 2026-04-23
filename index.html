@@ -387,8 +387,18 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     
-    // Initiera företags- och projektmodulen
-    initEmpresasProyectos(database);
+    // Funktion för att uppdatera dropdowns efter ändringar i företag/projekt
+    async function uppdateraEfterAndring() {
+        console.log("🔄 Uppdaterar dropdowns efter ändring");
+        await actualizarDropdownEmpresas();
+        if (empresaHidden.value) {
+            await actualizarProyectosPorEmpresa(empresaHidden.value);
+        }
+        await cargarArchivosExistentes();
+    }
+    
+    // Initiera företags- och projektmodulen med callback för uppdatering
+    initEmpresasProyectos(database, uppdateraEfterAndring);
     
     console.log("✅ Firebase initierad - underlag01");
     
@@ -441,7 +451,8 @@
     let currentProyectos = [];
     
     // Visa toast-meddelande
-    function showToast(msg, isError = false) {
+    function showToast(msg, isError) {
+        if (isError === undefined) isError = false;
         toast.textContent = msg;
         toast.style.backgroundColor = isError ? "#b91c2c" : "#1a2f3e";
         toast.style.opacity = "1";
@@ -475,22 +486,14 @@
     // Hämta ikon och färg baserat på filtyp
     function getFileIconAndColor(filename) {
         const ext = filename.split('.').pop().toLowerCase();
-        switch (ext) {
-            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c' };
-            case 'dwg': case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22' };
-            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': 
-                return { icon: 'fa-file-image', color: '#3498db' };
-            case 'mp4': case 'webm': case 'mov': case 'avi': 
-                return { icon: 'fa-file-video', color: '#9b59b6' };
-            case 'zip': case 'rar': case '7z': 
-                return { icon: 'fa-file-archive', color: '#f39c12' };
-            case 'doc': case 'docx': 
-                return { icon: 'fa-file-word', color: '#2980b9' };
-            case 'xls': case 'xlsx': case 'csv': 
-                return { icon: 'fa-file-excel', color: '#27ae60' };
-            default: 
-                return { icon: 'fa-file', color: '#5a8eb0' };
-        }
+        if (ext === 'pdf') return { icon: 'fa-file-pdf', color: '#e74c3c' };
+        if (ext === 'dwg' || ext === 'dxf') return { icon: 'fa-draw-polygon', color: '#e67e22' };
+        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return { icon: 'fa-file-image', color: '#3498db' };
+        if (['mp4','webm','mov','avi'].includes(ext)) return { icon: 'fa-file-video', color: '#9b59b6' };
+        if (['zip','rar','7z'].includes(ext)) return { icon: 'fa-file-archive', color: '#f39c12' };
+        if (['doc','docx'].includes(ext)) return { icon: 'fa-file-word', color: '#2980b9' };
+        if (['xls','xlsx','csv'].includes(ext)) return { icon: 'fa-file-excel', color: '#27ae60' };
+        return { icon: 'fa-file', color: '#5a8eb0' };
     }
     
     // Escapeta HTML
@@ -510,24 +513,29 @@
             fileListContainer.innerHTML = '<div style="text-align:center; color:#9bb3c9; padding:1rem;"><i class="fas fa-inbox"></i> Inga filer valda</div>';
             return;
         }
-        fileListContainer.innerHTML = selectedFiles.map(function(file, index) {
-            return `
+        let html = '';
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            html += `
                 <div class="file-item">
                     <i class="fas ${getFileIcon(file.name)}"></i>
                     <span class="file-name">${escapeHtml(file.name)}</span>
                     <span class="file-size">${formatSize(file.size)}</span>
-                    <button class="remove-file" data-index="${index}"><i class="fas fa-times"></i> Ta bort</button>
+                    <button class="remove-file" data-index="${i}"><i class="fas fa-times"></i> Ta bort</button>
                 </div>
             `;
-        }).join('');
+        }
+        fileListContainer.innerHTML = html;
         
-        document.querySelectorAll('.remove-file').forEach(function(btn) {
+        const removeButtons = document.querySelectorAll('.remove-file');
+        for (let i = 0; i < removeButtons.length; i++) {
+            const btn = removeButtons[i];
             btn.addEventListener('click', function(e) {
-                const index = parseInt(btn.dataset.index);
+                const index = parseInt(btn.getAttribute('data-index'));
                 selectedFiles.splice(index, 1);
                 renderFileList();
             });
-        });
+        }
     }
     
     // ========== DROPDOWN-FUNKTIONER ==========
@@ -536,15 +544,20 @@
         let empresas = await filtrarEmpresas(searchTerm);
         currentEmpresas = empresas;
         const showCount = Math.min(empresas.length, empresaLimit);
-        const visibleEmpresas = empresas.slice(0, showCount);
+        let visibleEmpresas = [];
+        for (let i = 0; i < showCount; i++) {
+            visibleEmpresas.push(empresas[i]);
+        }
         const hasMore = empresas.length > empresaLimit;
         
         if (visibleEmpresas.length === 0 && searchTerm) {
             empresaDropdown.innerHTML = '<div style="color:#999;">Inget företag hittades. Klicka på "Hantera" för att lägga till.</div>';
         } else {
-            let html = visibleEmpresas.map(function(emp) {
-                return `<div data-value="${escapeHtml(emp)}">${escapeHtml(emp)}</div>`;
-            }).join('');
+            let html = '';
+            for (let i = 0; i < visibleEmpresas.length; i++) {
+                const emp = visibleEmpresas[i];
+                html += `<div data-value="${escapeHtml(emp)}">${escapeHtml(emp)}</div>`;
+            }
             if (hasMore) {
                 html += `<div class="scroll-control" id="empresaShowMoreBtn">➕ Visa fler (${empresas.length - empresaLimit} fler)</div>`;
             } else if (empresas.length > 10) {
@@ -553,7 +566,9 @@
             empresaDropdown.innerHTML = html;
         }
         
-        empresaDropdown.querySelectorAll('div[data-value]').forEach(function(div) {
+        const dropdownItems = empresaDropdown.querySelectorAll('div[data-value]');
+        for (let i = 0; i < dropdownItems.length; i++) {
+            const div = dropdownItems[i];
             div.addEventListener('click', async function() {
                 const value = div.getAttribute('data-value');
                 empresaSearchInput.value = value;
@@ -562,7 +577,7 @@
                 await actualizarProyectosPorEmpresa(value);
                 await cargarArchivosExistentes();
             });
-        });
+        }
         
         const moreBtn = empresaDropdown.querySelector('#empresaShowMoreBtn');
         if (moreBtn) {
@@ -595,19 +610,30 @@
         }
         const searchTerm = proyectoSearchInput.value.toLowerCase();
         let proyectos = currentProyectos;
-        const filtrados = searchTerm ? proyectos.filter(function(p) {
-            return p.toLowerCase().includes(searchTerm);
-        }) : proyectos;
+        let filtrados = [];
+        for (let i = 0; i < proyectos.length; i++) {
+            const p = proyectos[i];
+            if (searchTerm === '') {
+                filtrados.push(p);
+            } else if (p.toLowerCase().includes(searchTerm)) {
+                filtrados.push(p);
+            }
+        }
         const showCount = Math.min(filtrados.length, proyectoLimit);
-        const visibleProyectos = filtrados.slice(0, showCount);
+        let visibleProyectos = [];
+        for (let i = 0; i < showCount; i++) {
+            visibleProyectos.push(filtrados[i]);
+        }
         const hasMore = filtrados.length > proyectoLimit;
         
         if (visibleProyectos.length === 0 && searchTerm) {
             proyectoDropdown.innerHTML = '<div style="color:#999;">Inget projekt hittades. Klicka på "Hantera" för att lägga till.</div>';
         } else {
-            let html = visibleProyectos.map(function(proj) {
-                return `<div data-value="${escapeHtml(proj)}">${escapeHtml(proj)}</div>`;
-            }).join('');
+            let html = '';
+            for (let i = 0; i < visibleProyectos.length; i++) {
+                const proj = visibleProyectos[i];
+                html += `<div data-value="${escapeHtml(proj)}">${escapeHtml(proj)}</div>`;
+            }
             if (hasMore) {
                 html += `<div class="scroll-control" id="proyectoShowMoreBtn">➕ Visa fler (${filtrados.length - proyectoLimit} fler)</div>`;
             } else if (filtrados.length > 10) {
@@ -616,7 +642,9 @@
             proyectoDropdown.innerHTML = html;
         }
         
-        proyectoDropdown.querySelectorAll('div[data-value]').forEach(function(div) {
+        const dropdownItems = proyectoDropdown.querySelectorAll('div[data-value]');
+        for (let i = 0; i < dropdownItems.length; i++) {
+            const div = dropdownItems[i];
             div.addEventListener('click', async function() {
                 const value = div.getAttribute('data-value');
                 proyectoSearchInput.value = value;
@@ -624,7 +652,7 @@
                 proyectoDropdown.style.display = 'none';
                 await cargarArchivosExistentes();
             });
-        });
+        }
         
         const moreBtn = proyectoDropdown.querySelector('#proyectoShowMoreBtn');
         if (moreBtn) {
@@ -678,21 +706,26 @@
         const formData = new FormData();
         const timestamp = Date.now();
         const safeName = file.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
-        const publicId = `${FOLDER}/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}/${timestamp}_${safeName}`;
+        const publicId = FOLDER + '/' + sanitizeForFirebase(company) + '/' + sanitizeForFirebase(project) + '/' + sanitizeForFirebase(code) + '/' + timestamp + '_' + safeName;
         formData.append('file', file);
         formData.append('upload_preset', UPLOAD_PRESET);
-        formData.append('folder', `${FOLDER}/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`);
+        formData.append('folder', FOLDER + '/' + sanitizeForFirebase(company) + '/' + sanitizeForFirebase(project) + '/' + sanitizeForFirebase(code));
         formData.append('public_id', publicId);
         formData.append('resource_type', 'auto');
         
         try {
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
+            const res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/auto/upload', {
                 method: 'POST',
                 body: formData
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error?.message || 'Uppladdning misslyckades');
-            const downloadUrl = data.secure_url + (data.secure_url.includes('?') ? '&fl_attachment' : '?fl_attachment');
+            let downloadUrl = data.secure_url;
+            if (downloadUrl.includes('?')) {
+                downloadUrl = downloadUrl + '&fl_attachment';
+            } else {
+                downloadUrl = downloadUrl + '?fl_attachment';
+            }
             return {
                 success: true,
                 publicId: data.public_id,
@@ -715,8 +748,9 @@
         const snapshot = await codeRef.once('value');
         let existingData = snapshot.val() || {};
         const filesObj = {};
-        files.forEach(function(file, index) {
-            const fileId = Date.now() + '_' + index + '_' + file.filename.replace(/[^a-zA-Z0-9]/g, '_');
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fileId = Date.now() + '_' + i + '_' + file.filename.replace(/[^a-zA-Z0-9]/g, '_');
             filesObj[fileId] = {
                 filename: file.filename,
                 size: file.size,
@@ -725,10 +759,18 @@
                 downloadUrl: file.downloadUrl,
                 type: file.type
             };
-        });
+        }
         const existingFiles = existingData.files || {};
-        const allFiles = Object.assign({}, existingFiles, filesObj);
-        await codeRef.set({
+        const allFiles = {};
+        // Kopiera befintliga filer
+        for (const key in existingFiles) {
+            allFiles[key] = existingFiles[key];
+        }
+        // Lägg till nya filer
+        for (const key in filesObj) {
+            allFiles[key] = filesObj[key];
+        }
+        const dataToSave = {
             description: description || existingData.description || '',
             company: company,
             project: project,
@@ -736,7 +778,8 @@
             createdAt: existingData.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             files: allFiles
-        });
+        };
+        await codeRef.set(dataToSave);
         return true;
     }
     
@@ -771,11 +814,14 @@
             html += '<p><strong>Beskrivning:</strong> ' + escapeHtml(currentData.description) + '</p>';
         }
         html += '<div style="margin-top: 1rem;">';
-        for (const [fileId, file] of Object.entries(currentData.files)) {
-            const { icon, color } = getFileIconAndColor(file.filename);
+        const fileEntries = Object.entries(currentData.files);
+        for (let i = 0; i < fileEntries.length; i++) {
+            const fileId = fileEntries[i][0];
+            const file = fileEntries[i][1];
+            const iconInfo = getFileIconAndColor(file.filename);
             html += `
                 <div class="file-item-existing" data-fileid="${fileId}">
-                    <i class="fas ${icon}" style="color:${color}; font-size:1.2rem;"></i>
+                    <i class="fas ${iconInfo.icon}" style="color:${iconInfo.color}; font-size:1.2rem;"></i>
                     <span class="file-name">${escapeHtml(file.filename)}</span>
                     <span class="file-size">${formatSize(file.size)}</span>
                     <div style="display: flex; gap: 0.3rem;">
@@ -793,14 +839,16 @@
         existingFilesList.innerHTML = html;
         deleteCodeBtn.style.display = 'inline-flex';
         
-        document.querySelectorAll('.delete-single-file').forEach(function(btn) {
+        const deleteButtons = document.querySelectorAll('.delete-single-file');
+        for (let i = 0; i < deleteButtons.length; i++) {
+            const btn = deleteButtons[i];
             btn.addEventListener('click', async function(e) {
                 const fileId = btn.getAttribute('data-fileid');
                 if (confirm('Ta bort denna fil?')) {
                     await deleteSingleFile(empresaHidden.value, proyectoHidden.value, codeInput.value.trim().toUpperCase(), fileId);
                 }
             });
-        });
+        }
     }
     
     async function deleteSingleFile(company, project, code, fileId) {
@@ -856,8 +904,12 @@
             await saveToFirebase(company, project, code, description, uploadedFiles);
             
             let baseUrl = window.location.href;
-            if (baseUrl.includes('index.html')) baseUrl = baseUrl.replace('index.html', '');
-            if (!baseUrl.endsWith('/')) baseUrl += '/';
+            if (baseUrl.includes('index.html')) {
+                baseUrl = baseUrl.replace('index.html', '');
+            }
+            if (!baseUrl.endsWith('/')) {
+                baseUrl = baseUrl + '/';
+            }
             const ENLACE = baseUrl + 'viewer.html?company=' + encodeURIComponent(company) + '&project=' + encodeURIComponent(project) + '&code=' + encodeURIComponent(code);
             
             resultContainer.style.display = 'block';
@@ -871,11 +923,15 @@
                 <button id="copyLinkBtn" class="btn-primary"><i class="fas fa-copy"></i> Kopiera länk</button>
                 <a href="${ENLACE}" target="_blank" class="btn-secondary" style="text-decoration:none;"> Testa länk</a>
             `;
-            document.getElementById('copyLinkBtn')?.addEventListener('click', function() {
-                document.getElementById('linkInput').select();
-                document.execCommand('copy');
-                showToast('📋 Länk kopierad');
-            });
+            const copyBtn = document.getElementById('copyLinkBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const linkInput = document.getElementById('linkInput');
+                    linkInput.select();
+                    document.execCommand('copy');
+                    showToast('📋 Länk kopierad');
+                });
+            }
             await cargarArchivosExistentes();
             showToast('✅ ' + uploadedFiles.length + ' fil(er) uppladdade');
         }
@@ -896,11 +952,7 @@
     }
     
     manageBtn.addEventListener('click', function() {
-        mostrarModalGestion(function() {
-            actualizarDropdownEmpresas();
-            if (empresaHidden.value) actualizarProyectosPorEmpresa(empresaHidden.value);
-            cargarArchivosExistentes();
-        });
+        mostrarModalGestion(uppdateraEfterAndring);
     });
     
     let debounceTimer;
@@ -922,7 +974,9 @@
         e.preventDefault();
         dropzone.classList.remove('drag-over');
         const files = Array.from(e.dataTransfer.files);
-        selectedFiles.push.apply(selectedFiles, files);
+        for (let i = 0; i < files.length; i++) {
+            selectedFiles.push(files[i]);
+        }
         renderFileList();
     });
     dropzone.addEventListener('click', function() {
@@ -930,7 +984,9 @@
     });
     fileInput.addEventListener('change', function(e) {
         const files = Array.from(e.target.files);
-        selectedFiles.push.apply(selectedFiles, files);
+        for (let i = 0; i < files.length; i++) {
+            selectedFiles.push(files[i]);
+        }
         renderFileList();
         fileInput.value = '';
     });
