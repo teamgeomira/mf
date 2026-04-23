@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Ladda upp underlag</title>
+    <title>Admin – Ladda upp underlag</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -68,7 +68,7 @@
         
         <div class="row">
             <div class="form-group">
-                <label><i class="fas fa-building"></i> Företag / Kund</label>
+                <label><i class="fas fa-building"></i> Företag</label>
                 <div class="searchable-select" id="empresaSelectContainer">
                     <input type="text" id="empresaSearchInput" placeholder="Sök eller välj företag..." autocomplete="off">
                     <div id="empresaDropdown" class="searchable-select-dropdown"></div>
@@ -84,14 +84,14 @@
                 <input type="hidden" id="proyectoInput">
             </div>
             <div class="form-group">
-                <label><i class="fas fa-tag"></i> Kod (t.ex. CBB.32)</label>
+                <label><i class="fas fa-tag"></i> Kod</label>
                 <input type="text" id="codeInput" placeholder="Exempel: CBB.32" autocomplete="off">
             </div>
         </div>
 
         <div class="form-group">
-            <label><i class="fas fa-file-alt"></i> Beskrivning (valfritt)</label>
-            <input type="text" id="descriptionInput" placeholder="Vad innehåller filerna?">
+            <label><i class="fas fa-file-alt"></i> Beskrivning</label>
+            <input type="text" id="descriptionInput" placeholder="Vad innehåller filerna? (valfritt)">
         </div>
 
         <div class="form-group">
@@ -134,7 +134,7 @@
 
 <script src="empresas-proyectos.js"></script>
 <script>
-    // ========== FIREBASE KONFIGURATION (underlag01) ==========
+    // ========== FIREBASE KONFIGURATION ==========
     const firebaseConfig = {
         apiKey: "AIzaSyANa6zWkGrYQ7O7M6XT2oYbArsZIcs36M8",
         authDomain: "underlag.firebaseapp.com",
@@ -147,9 +147,13 @@
     
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    console.log("✅ Firebase initierad - underlag01");
+    
+    // Initiera entreprises-projekt modulen
+    initEmpresasProyectos(database);
+    
+    console.log("✅ Firebase initierad - underlag");
 
-    // ========== CLOUDINARY KONFIGURATION (samma som tidigare) ==========
+    // ========== CLOUDINARY KONFIGURATION ==========
     const CLOUD_NAME = "dc1zqri3o";
     const UPLOAD_PRESET = "ncc_nordic";
     const FOLDER = "underlag";
@@ -164,15 +168,7 @@
         return `underlag/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`;
     }
 
-    // SHA1 för Cloudinary signatur
-    async function sha1(message) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    // DOM elements
+    // DOM element
     const empresaSearchInput = document.getElementById('empresaSearchInput');
     const empresaDropdown = document.getElementById('empresaDropdown');
     const empresaHidden = document.getElementById('empresaInput');
@@ -199,6 +195,8 @@
     let currentData = null;
     let empresaLimit = 10;
     let proyectoLimit = 10;
+    let currentEmpresas = [];
+    let currentProyectos = [];
 
     function showToast(msg, isError = false) {
         toast.textContent = msg;
@@ -269,9 +267,10 @@
     }
 
     // ========== DROPDOWN FUNCTIONS ==========
-    function actualizarDropdownEmpresas() {
+    async function actualizarDropdownEmpresas() {
         const searchTerm = empresaSearchInput.value.toLowerCase();
-        let empresas = window.filtrarEmpresas ? window.filtrarEmpresas(searchTerm) : [];
+        let empresas = await filtrarEmpresas(searchTerm);
+        currentEmpresas = empresas;
         const showCount = Math.min(empresas.length, empresaLimit);
         const visibleEmpresas = empresas.slice(0, showCount);
         const hasMore = empresas.length > empresaLimit;
@@ -288,13 +287,13 @@
             empresaDropdown.innerHTML = html;
         }
         empresaDropdown.querySelectorAll('div[data-value]').forEach(div => {
-            div.addEventListener('click', () => {
+            div.addEventListener('click', async () => {
                 const value = div.getAttribute('data-value');
                 empresaSearchInput.value = value;
                 empresaHidden.value = value;
                 empresaDropdown.style.display = 'none';
-                actualizarProyectosPorEmpresa(value);
-                cargarArchivosExistentes();
+                await actualizarProyectosPorEmpresa(value);
+                await cargarArchivosExistentes();
             });
         });
         const moreBtn = empresaDropdown.querySelector('#empresaShowMoreBtn');
@@ -303,20 +302,21 @@
         if (lessBtn) lessBtn.addEventListener('click', () => { empresaLimit = 10; actualizarDropdownEmpresas(); });
     }
     
-    function actualizarProyectosPorEmpresa(empresa) {
-        const proyectos = window.getProyectos ? window.getProyectos(empresa) : [];
+    async function actualizarProyectosPorEmpresa(empresa) {
+        const proyectos = await getProyectos(empresa);
+        currentProyectos = proyectos;
         proyectoSearchInput.disabled = false;
-        actualizarDropdownProyectos();
+        await actualizarDropdownProyectos();
     }
     
-    function actualizarDropdownProyectos() {
+    async function actualizarDropdownProyectos() {
         if (!empresaHidden.value) {
             proyectoSearchInput.disabled = true;
             proyectoDropdown.innerHTML = '';
             return;
         }
         const searchTerm = proyectoSearchInput.value.toLowerCase();
-        let proyectos = window.getProyectos ? window.getProyectos(empresaHidden.value) : [];
+        let proyectos = currentProyectos;
         const filtrados = searchTerm ? proyectos.filter(p => p.toLowerCase().includes(searchTerm)) : proyectos;
         const showCount = Math.min(filtrados.length, proyectoLimit);
         const visibleProyectos = filtrados.slice(0, showCount);
@@ -334,12 +334,12 @@
             proyectoDropdown.innerHTML = html;
         }
         proyectoDropdown.querySelectorAll('div[data-value]').forEach(div => {
-            div.addEventListener('click', () => {
+            div.addEventListener('click', async () => {
                 const value = div.getAttribute('data-value');
                 proyectoSearchInput.value = value;
                 proyectoHidden.value = value;
                 proyectoDropdown.style.display = 'none';
-                cargarArchivosExistentes();
+                await cargarArchivosExistentes();
             });
         });
         const moreBtn = proyectoDropdown.querySelector('#proyectoShowMoreBtn');
@@ -364,10 +364,10 @@
         const formData = new FormData();
         const timestamp = Date.now();
         const safeName = file.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
-        const publicId = `${FOLDER}/${company}/${project}/${code}/${timestamp}_${safeName}`;
+        const publicId = `${FOLDER}/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}/${timestamp}_${safeName}`;
         formData.append('file', file);
         formData.append('upload_preset', UPLOAD_PRESET);
-        formData.append('folder', `${FOLDER}/${company}/${project}/${code}`);
+        formData.append('folder', `${FOLDER}/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`);
         formData.append('public_id', publicId);
         formData.append('resource_type', 'auto');
         try {
@@ -572,7 +572,7 @@
     }
 
     manageBtn.addEventListener('click', () => {
-        window.mostrarModalGestion(() => {
+        mostrarModalGestion(() => {
             actualizarDropdownEmpresas();
             if (empresaHidden.value) actualizarProyectosPorEmpresa(empresaHidden.value);
             cargarArchivosExistentes();
