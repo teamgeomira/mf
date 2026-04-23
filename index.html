@@ -388,11 +388,20 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     
+    // Kontrollera att databasen är tillgänglig
+    database.ref('.info/connected').on('value', (snap) => {
+        if (snap.val() === true) {
+            console.log("✅ Ansluten till Firebase Realtime Database");
+        } else {
+            console.log("❌ Ingen anslutning till Firebase Realtime Database");
+        }
+    });
+    
     // Funktion för att uppdatera dropdowns efter ändringar i företag/projekt
     async function uppdateraEfterAndring() {
         console.log("🔄 Uppdaterar dropdowns efter ändring");
         await actualizarDropdownEmpresas();
-        if (empresaHidden.value) {
+        if (empresaHidden && empresaHidden.value) {
             await actualizarProyectosPorEmpresa(empresaHidden.value);
         }
         await cargarArchivosExistentes();
@@ -400,6 +409,25 @@
     
     // Initiera företags- och projektmodulen med callback för uppdatering
     initEmpresasProyectos(database, uppdateraEfterAndring);
+    
+    // Testa att spara testföretag om databasen är tom
+    setTimeout(async () => {
+        try {
+            const empresas = await getEmpresas();
+            if (empresas.length === 0) {
+                console.log("📝 Inga företag hittades, skapar testföretag...");
+                await agregarEmpresa("Geomira");
+                await agregarEmpresa("NCC");
+                await agregarEmpresa("Skanska");
+                await uppdateraEfterAndring();
+                console.log("✅ Testföretag skapade: Geomira, NCC, Skanska");
+            } else {
+                console.log("📊 Företag som redan finns:", empresas);
+            }
+        } catch (error) {
+            console.error("Fel vid skapande av testföretag:", error);
+        }
+    }, 2000);
     
     console.log("✅ Firebase initierad - underlag01");
     
