@@ -10,48 +10,278 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%); padding: 2rem; color: #1b2f44; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; margin-bottom: 2rem; }
-        .header h1 { font-size: 2rem; background: linear-gradient(120deg, #0b4b6e, #1f7ea3); background-clip: text; -webkit-background-clip: text; color: transparent; }
-        .card { background: white; border-radius: 1.5rem; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .form-group { margin-bottom: 1.5rem; }
-        label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #2c5a74; }
-        input[type="text"], input[type="file"], select { width: 100%; padding: 0.8rem 1rem; border: 2px solid #cbdde9; border-radius: 1rem; font-family: 'Inter', sans-serif; font-size: 1rem; transition: 0.2s; }
-        input:focus, select:focus { outline: none; border-color: #2c7cb6; }
-        .searchable-select { position: relative; }
-        .searchable-select input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #cbdde9; border-radius: 1rem; }
-        .searchable-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #cbdde9; border-top: none; border-radius: 0 0 1rem 1rem; max-height: 250px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .searchable-select-dropdown div { padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #eef3fc; }
-        .searchable-select-dropdown div:hover { background: #eef3fc; }
-        .scroll-control { text-align: center; padding: 0.5rem; background: #f8fafc; border-top: 1px solid #cbdde9; font-size: 0.75rem; cursor: pointer; }
-        .dropzone { border: 2.5px dashed #8bb4d0; border-radius: 1.5rem; background: #fafdff; padding: 2rem; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
-        .dropzone.drag-over { border-color: #1f7ea3; background: #e6f4fe; }
-        .dropzone i { font-size: 3rem; color: #5a8eb0; margin-bottom: 0.5rem; }
-        .file-list { margin-top: 1rem; max-height: 300px; overflow-y: auto; }
-        .file-item { background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-        .file-name { flex: 1; font-size: 0.85rem; word-break: break-all; }
-        .file-size { font-size: 0.75rem; color: #6c8dab; }
-        .remove-file { background: #fee2e2; border: none; padding: 0.3rem 0.7rem; border-radius: 2rem; cursor: pointer; color: #b91c2c; font-size: 0.7rem; }
-        .btn-primary, .btn-secondary, .btn-danger, .btn-success { border: none; padding: 0.8rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; }
-        .btn-primary { background: #2c7cb6; color: white; }
-        .btn-primary:hover { background: #1f5a82; }
-        .btn-secondary { background: #e2e8f0; color: #2c3e50; }
-        .btn-secondary:hover { background: #cbd5e1; }
-        .btn-danger { background: #fee2e2; color: #b91c2c; }
-        .btn-success { background: #10b981; color: white; }
-        .progress-bar { background: #d9e5f0; border-radius: 20px; height: 8px; margin: 1rem 0; overflow: hidden; }
-        .progress-fill { background: linear-gradient(90deg, #2c7cb6, #4ca0d0); width: 0%; height: 100%; transition: width 0.3s; }
-        .result-link { background: #eef3fc; padding: 1rem; border-radius: 1rem; margin-top: 1rem; display: none; }
-        .code-badge { background: #e67e22; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-family: monospace; font-size: 0.9rem; display: inline-block; }
-        .existing-files { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2edf5; }
-        .file-item-existing { background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-        .row { display: flex; gap: 1rem; flex-wrap: wrap; }
-        .row > div { flex: 1; min-width: 200px; }
-        .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; background: #f8fafc; padding: 0.8rem; border-radius: 1rem; }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
-        @media (max-width: 768px) { body { padding: 1rem; } .card { padding: 1.5rem; } .row { flex-direction: column; } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%);
+            padding: 2rem;
+            color: #1b2f44;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(120deg, #0b4b6e, #1f7ea3);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2c5a74;
+        }
+        input[type="text"], input[type="file"], select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 2px solid #cbdde9;
+            border-radius: 1rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2c7cb6;
+        }
+        .searchable-select {
+            position: relative;
+        }
+        .searchable-select input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 2px solid #cbdde9;
+            border-radius: 1rem;
+        }
+        .searchable-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #cbdde9;
+            border-top: none;
+            border-radius: 0 0 1rem 1rem;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .searchable-select-dropdown div {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #eef3fc;
+        }
+        .searchable-select-dropdown div:hover {
+            background: #eef3fc;
+        }
+        .scroll-control {
+            text-align: center;
+            padding: 0.5rem;
+            background: #f8fafc;
+            border-top: 1px solid #cbdde9;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .dropzone {
+            border: 2.5px dashed #8bb4d0;
+            border-radius: 1.5rem;
+            background: #fafdff;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 0.5rem;
+        }
+        .dropzone.drag-over {
+            border-color: #1f7ea3;
+            background: #e6f4fe;
+        }
+        .dropzone i {
+            font-size: 3rem;
+            color: #5a8eb0;
+            margin-bottom: 0.5rem;
+        }
+        .file-list {
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .file-item {
+            background: #f0f6fc;
+            padding: 0.7rem 1rem;
+            border-radius: 0.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .file-name {
+            flex: 1;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        .file-size {
+            font-size: 0.75rem;
+            color: #6c8dab;
+        }
+        .remove-file {
+            background: #fee2e2;
+            border: none;
+            padding: 0.3rem 0.7rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            color: #b91c2c;
+            font-size: 0.7rem;
+        }
+        .btn-primary, .btn-secondary, .btn-danger, .btn-success {
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: #2c7cb6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1f5a82;
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2c3e50;
+        }
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+        .btn-danger {
+            background: #fee2e2;
+            color: #b91c2c;
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .progress-bar {
+            background: #d9e5f0;
+            border-radius: 20px;
+            height: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #2c7cb6, #4ca0d0);
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .result-link {
+            background: #eef3fc;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+        .code-badge {
+            background: #e67e22;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        .existing-files {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2edf5;
+        }
+        .file-item-existing {
+            background: #f0f6fc;
+            padding: 0.7rem 1rem;
+            border-radius: 0.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .row > div {
+            flex: 1;
+            min-width: 200px;
+        }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            align-items: center;
+            background: #f8fafc;
+            padding: 0.8rem;
+            border-radius: 1rem;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a2f3e;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            .card {
+                padding: 1.5rem;
+            }
+            .row {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
@@ -63,7 +293,9 @@
 
     <div class="card">
         <div class="toolbar">
-            <button id="manageBtn" class="btn-success"><i class="fas fa-edit"></i> Hantera företag & projekt</button>
+            <button id="manageBtn" class="btn-success">
+                <i class="fas fa-edit"></i> Hantera företag & projekt
+            </button>
         </div>
         
         <div class="row">
@@ -114,8 +346,12 @@
         </div>
 
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-            <button id="uploadBtn" class="btn-primary"><i class="fas fa-upload"></i> Ladda upp filer</button>
-            <button id="clearBtn" class="btn-secondary"><i class="fas fa-trash-alt"></i> Rensa</button>
+            <button id="uploadBtn" class="btn-primary">
+                <i class="fas fa-upload"></i> Ladda upp filer
+            </button>
+            <button id="clearBtn" class="btn-secondary">
+                <i class="fas fa-trash-alt"></i> Rensa
+            </button>
         </div>
 
         <div id="resultContainer" class="result-link"></div>
@@ -125,7 +361,9 @@
         <h3><i class="fas fa-history"></i> Befintliga filer för denna kod</h3>
         <div id="existingFilesList"></div>
         <div style="margin-top: 1rem;">
-            <button id="deleteCodeBtn" class="btn-danger" style="display: none;"><i class="fas fa-trash"></i> Ta bort hela koden</button>
+            <button id="deleteCodeBtn" class="btn-danger" style="display: none;">
+                <i class="fas fa-trash"></i> Ta bort hela koden
+            </button>
         </div>
     </div>
 </div>
@@ -134,41 +372,45 @@
 
 <script src="empresas-proyectos.js"></script>
 <script>
-    // ========== FIREBASE KONFIGURATION ==========
+    // ========== FIREBASE KONFIGURATION (underlag01) ==========
     const firebaseConfig = {
         apiKey: "AIzaSyANa6zWkGrYQ7O7M6XT2oYbArsZIcs36M8",
-        authDomain: "underlag.firebaseapp.com",
-        databaseURL: "https://underlag-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "underlag",
-        storageBucket: "underlag.firebasestorage.app",
+        authDomain: "underlag01.firebaseapp.com",
+        databaseURL: "https://underlag01-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "underlag01",
+        storageBucket: "underlag01.firebasestorage.app",
         messagingSenderId: "279884641652",
         appId: "1:279884641652:web:ebeadba357d17635aba009"
     };
     
+    // Initiera Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     
-    // Initiera entreprises-projekt modulen
+    // Initiera företags- och projektmodulen
     initEmpresasProyectos(database);
     
-    console.log("✅ Firebase initierad - underlag");
-
+    console.log("✅ Firebase initierad - underlag01");
+    
     // ========== CLOUDINARY KONFIGURATION ==========
     const CLOUD_NAME = "dc1zqri3o";
     const UPLOAD_PRESET = "ncc_nordic";
     const FOLDER = "underlag";
     const API_KEY = "725351489155421";
     const API_SECRET = "22W8BZheLQtKAw7LEayY1S60Ky4";
-
+    
+    // Hjälpfunktion för att sanera strängar för Firebase
     function sanitizeForFirebase(str) {
+        if (!str) return '';
         return str.replace(/\./g, '-').replace(/[#$\[\]\/]/g, '_').replace(/\s+/g, '_');
     }
     
+    // Skapa sökväg i Firebase
     function getFirebasePath(company, project, code) {
         return `underlag/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`;
     }
-
-    // DOM element
+    
+    // DOM-element
     const empresaSearchInput = document.getElementById('empresaSearchInput');
     const empresaDropdown = document.getElementById('empresaDropdown');
     const empresaHidden = document.getElementById('empresaInput');
@@ -190,21 +432,25 @@
     const deleteCodeBtn = document.getElementById('deleteCodeBtn');
     const toast = document.getElementById('toast');
     const manageBtn = document.getElementById('manageBtn');
-
+    
     let selectedFiles = [];
     let currentData = null;
     let empresaLimit = 10;
     let proyectoLimit = 10;
     let currentEmpresas = [];
     let currentProyectos = [];
-
+    
+    // Visa toast-meddelande
     function showToast(msg, isError = false) {
         toast.textContent = msg;
         toast.style.backgroundColor = isError ? "#b91c2c" : "#1a2f3e";
         toast.style.opacity = "1";
-        setTimeout(() => toast.style.opacity = "0", 2500);
+        setTimeout(function() {
+            toast.style.opacity = "0";
+        }, 2500);
     }
-
+    
+    // Formatera filstorlek
     function formatSize(bytes) {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -212,7 +458,8 @@
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-
+    
+    // Hämta ikon baserat på filtyp
     function getFileIcon(filename) {
         const ext = filename.split('.').pop().toLowerCase();
         if (ext === 'pdf') return 'fa-file-pdf';
@@ -224,49 +471,66 @@
         if (['xls','xlsx','csv'].includes(ext)) return 'fa-file-excel';
         return 'fa-file';
     }
-
+    
+    // Hämta ikon och färg baserat på filtyp
     function getFileIconAndColor(filename) {
         const ext = filename.split('.').pop().toLowerCase();
         switch (ext) {
             case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c' };
             case 'dwg': case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22' };
-            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': return { icon: 'fa-file-image', color: '#3498db' };
-            case 'mp4': case 'webm': case 'mov': case 'avi': return { icon: 'fa-file-video', color: '#9b59b6' };
-            case 'zip': case 'rar': case '7z': return { icon: 'fa-file-archive', color: '#f39c12' };
-            case 'doc': case 'docx': return { icon: 'fa-file-word', color: '#2980b9' };
-            case 'xls': case 'xlsx': case 'csv': return { icon: 'fa-file-excel', color: '#27ae60' };
-            default: return { icon: 'fa-file', color: '#5a8eb0' };
+            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': 
+                return { icon: 'fa-file-image', color: '#3498db' };
+            case 'mp4': case 'webm': case 'mov': case 'avi': 
+                return { icon: 'fa-file-video', color: '#9b59b6' };
+            case 'zip': case 'rar': case '7z': 
+                return { icon: 'fa-file-archive', color: '#f39c12' };
+            case 'doc': case 'docx': 
+                return { icon: 'fa-file-word', color: '#2980b9' };
+            case 'xls': case 'xlsx': case 'csv': 
+                return { icon: 'fa-file-excel', color: '#27ae60' };
+            default: 
+                return { icon: 'fa-file', color: '#5a8eb0' };
         }
     }
-
+    
+    // Escapeta HTML
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
     }
-
+    
+    // Rendera listan över valda filer
     function renderFileList() {
         if (selectedFiles.length === 0) {
             fileListContainer.innerHTML = '<div style="text-align:center; color:#9bb3c9; padding:1rem;"><i class="fas fa-inbox"></i> Inga filer valda</div>';
             return;
         }
-        fileListContainer.innerHTML = selectedFiles.map((file, index) => `
-            <div class="file-item">
-                <i class="fas ${getFileIcon(file.name)}"></i>
-                <span class="file-name">${escapeHtml(file.name)}</span>
-                <span class="file-size">${formatSize(file.size)}</span>
-                <button class="remove-file" data-index="${index}"><i class="fas fa-times"></i> Ta bort</button>
-            </div>
-        `).join('');
-        document.querySelectorAll('.remove-file').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        fileListContainer.innerHTML = selectedFiles.map(function(file, index) {
+            return `
+                <div class="file-item">
+                    <i class="fas ${getFileIcon(file.name)}"></i>
+                    <span class="file-name">${escapeHtml(file.name)}</span>
+                    <span class="file-size">${formatSize(file.size)}</span>
+                    <button class="remove-file" data-index="${index}"><i class="fas fa-times"></i> Ta bort</button>
+                </div>
+            `;
+        }).join('');
+        
+        document.querySelectorAll('.remove-file').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
                 const index = parseInt(btn.dataset.index);
                 selectedFiles.splice(index, 1);
                 renderFileList();
             });
         });
     }
-
-    // ========== DROPDOWN FUNCTIONS ==========
+    
+    // ========== DROPDOWN-FUNKTIONER ==========
     async function actualizarDropdownEmpresas() {
         const searchTerm = empresaSearchInput.value.toLowerCase();
         let empresas = await filtrarEmpresas(searchTerm);
@@ -276,9 +540,11 @@
         const hasMore = empresas.length > empresaLimit;
         
         if (visibleEmpresas.length === 0 && searchTerm) {
-            empresaDropdown.innerHTML = `<div style="color:#999;">Inget företag hittades. Klicka på "Hantera" för att lägga till.</div>`;
+            empresaDropdown.innerHTML = '<div style="color:#999;">Inget företag hittades. Klicka på "Hantera" för att lägga till.</div>';
         } else {
-            let html = visibleEmpresas.map(emp => `<div data-value="${escapeHtml(emp)}">${escapeHtml(emp)}</div>`).join('');
+            let html = visibleEmpresas.map(function(emp) {
+                return `<div data-value="${escapeHtml(emp)}">${escapeHtml(emp)}</div>`;
+            }).join('');
             if (hasMore) {
                 html += `<div class="scroll-control" id="empresaShowMoreBtn">➕ Visa fler (${empresas.length - empresaLimit} fler)</div>`;
             } else if (empresas.length > 10) {
@@ -286,8 +552,9 @@
             }
             empresaDropdown.innerHTML = html;
         }
-        empresaDropdown.querySelectorAll('div[data-value]').forEach(div => {
-            div.addEventListener('click', async () => {
+        
+        empresaDropdown.querySelectorAll('div[data-value]').forEach(function(div) {
+            div.addEventListener('click', async function() {
                 const value = div.getAttribute('data-value');
                 empresaSearchInput.value = value;
                 empresaHidden.value = value;
@@ -296,10 +563,21 @@
                 await cargarArchivosExistentes();
             });
         });
+        
         const moreBtn = empresaDropdown.querySelector('#empresaShowMoreBtn');
-        if (moreBtn) moreBtn.addEventListener('click', () => { empresaLimit += 20; actualizarDropdownEmpresas(); });
+        if (moreBtn) {
+            moreBtn.addEventListener('click', function() {
+                empresaLimit += 20;
+                actualizarDropdownEmpresas();
+            });
+        }
         const lessBtn = empresaDropdown.querySelector('#empresaShowLessBtn');
-        if (lessBtn) lessBtn.addEventListener('click', () => { empresaLimit = 10; actualizarDropdownEmpresas(); });
+        if (lessBtn) {
+            lessBtn.addEventListener('click', function() {
+                empresaLimit = 10;
+                actualizarDropdownEmpresas();
+            });
+        }
     }
     
     async function actualizarProyectosPorEmpresa(empresa) {
@@ -317,15 +595,19 @@
         }
         const searchTerm = proyectoSearchInput.value.toLowerCase();
         let proyectos = currentProyectos;
-        const filtrados = searchTerm ? proyectos.filter(p => p.toLowerCase().includes(searchTerm)) : proyectos;
+        const filtrados = searchTerm ? proyectos.filter(function(p) {
+            return p.toLowerCase().includes(searchTerm);
+        }) : proyectos;
         const showCount = Math.min(filtrados.length, proyectoLimit);
         const visibleProyectos = filtrados.slice(0, showCount);
         const hasMore = filtrados.length > proyectoLimit;
         
         if (visibleProyectos.length === 0 && searchTerm) {
-            proyectoDropdown.innerHTML = `<div style="color:#999;">Inget projekt hittades. Klicka på "Hantera" för att lägga till.</div>`;
+            proyectoDropdown.innerHTML = '<div style="color:#999;">Inget projekt hittades. Klicka på "Hantera" för att lägga till.</div>';
         } else {
-            let html = visibleProyectos.map(proj => `<div data-value="${escapeHtml(proj)}">${escapeHtml(proj)}</div>`).join('');
+            let html = visibleProyectos.map(function(proj) {
+                return `<div data-value="${escapeHtml(proj)}">${escapeHtml(proj)}</div>`;
+            }).join('');
             if (hasMore) {
                 html += `<div class="scroll-control" id="proyectoShowMoreBtn">➕ Visa fler (${filtrados.length - proyectoLimit} fler)</div>`;
             } else if (filtrados.length > 10) {
@@ -333,8 +615,9 @@
             }
             proyectoDropdown.innerHTML = html;
         }
-        proyectoDropdown.querySelectorAll('div[data-value]').forEach(div => {
-            div.addEventListener('click', async () => {
+        
+        proyectoDropdown.querySelectorAll('div[data-value]').forEach(function(div) {
+            div.addEventListener('click', async function() {
                 const value = div.getAttribute('data-value');
                 proyectoSearchInput.value = value;
                 proyectoHidden.value = value;
@@ -342,24 +625,55 @@
                 await cargarArchivosExistentes();
             });
         });
+        
         const moreBtn = proyectoDropdown.querySelector('#proyectoShowMoreBtn');
-        if (moreBtn) moreBtn.addEventListener('click', () => { proyectoLimit += 20; actualizarDropdownProyectos(); });
+        if (moreBtn) {
+            moreBtn.addEventListener('click', function() {
+                proyectoLimit += 20;
+                actualizarDropdownProyectos();
+            });
+        }
         const lessBtn = proyectoDropdown.querySelector('#proyectoShowLessBtn');
-        if (lessBtn) lessBtn.addEventListener('click', () => { proyectoLimit = 10; actualizarDropdownProyectos(); });
+        if (lessBtn) {
+            lessBtn.addEventListener('click', function() {
+                proyectoLimit = 10;
+                actualizarDropdownProyectos();
+            });
+        }
     }
     
     function setupDropdowns() {
-        empresaSearchInput.addEventListener('focus', () => { actualizarDropdownEmpresas(); empresaDropdown.style.display = 'block'; });
-        empresaSearchInput.addEventListener('input', () => { actualizarDropdownEmpresas(); empresaDropdown.style.display = 'block'; });
-        proyectoSearchInput.addEventListener('focus', () => { if (empresaHidden.value) { actualizarDropdownProyectos(); proyectoDropdown.style.display = 'block'; } });
-        proyectoSearchInput.addEventListener('input', () => { if (empresaHidden.value) { actualizarDropdownProyectos(); proyectoDropdown.style.display = 'block'; } });
-        document.addEventListener('click', (e) => {
-            if (!empresaSearchInput.contains(e.target) && !empresaDropdown.contains(e.target)) empresaDropdown.style.display = 'none';
-            if (!proyectoSearchInput.contains(e.target) && !proyectoDropdown.contains(e.target)) proyectoDropdown.style.display = 'none';
+        empresaSearchInput.addEventListener('focus', function() {
+            actualizarDropdownEmpresas();
+            empresaDropdown.style.display = 'block';
+        });
+        empresaSearchInput.addEventListener('input', function() {
+            actualizarDropdownEmpresas();
+            empresaDropdown.style.display = 'block';
+        });
+        proyectoSearchInput.addEventListener('focus', function() {
+            if (empresaHidden.value) {
+                actualizarDropdownProyectos();
+                proyectoDropdown.style.display = 'block';
+            }
+        });
+        proyectoSearchInput.addEventListener('input', function() {
+            if (empresaHidden.value) {
+                actualizarDropdownProyectos();
+                proyectoDropdown.style.display = 'block';
+            }
+        });
+        document.addEventListener('click', function(e) {
+            if (!empresaSearchInput.contains(e.target) && !empresaDropdown.contains(e.target)) {
+                empresaDropdown.style.display = 'none';
+            }
+            if (!proyectoSearchInput.contains(e.target) && !proyectoDropdown.contains(e.target)) {
+                proyectoDropdown.style.display = 'none';
+            }
         });
     }
-
-    // ========== CLOUDINARY & FIREBASE ==========
+    
+    // ========== CLOUDINARY- OCH FIREBASE-FUNKTIONER ==========
     async function uploadFileToCloudinary(file, company, project, code) {
         const formData = new FormData();
         const timestamp = Date.now();
@@ -370,8 +684,12 @@
         formData.append('folder', `${FOLDER}/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`);
         formData.append('public_id', publicId);
         formData.append('resource_type', 'auto');
+        
         try {
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, { method: 'POST', body: formData });
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
+                method: 'POST',
+                body: formData
+            });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error?.message || 'Uppladdning misslyckades');
             const downloadUrl = data.secure_url + (data.secure_url.includes('?') ? '&fl_attachment' : '?fl_attachment');
@@ -390,15 +708,15 @@
             return { success: false, name: file.name, error: err.message };
         }
     }
-
+    
     async function saveToFirebase(company, project, code, description, files) {
         const path = getFirebasePath(company, project, code);
         const codeRef = database.ref(path);
         const snapshot = await codeRef.once('value');
         let existingData = snapshot.val() || {};
         const filesObj = {};
-        files.forEach((file, index) => {
-            const fileId = `${Date.now()}_${index}_${file.filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        files.forEach(function(file, index) {
+            const fileId = Date.now() + '_' + index + '_' + file.filename.replace(/[^a-zA-Z0-9]/g, '_');
             filesObj[fileId] = {
                 filename: file.filename,
                 size: file.size,
@@ -409,7 +727,7 @@
             };
         });
         const existingFiles = existingData.files || {};
-        const allFiles = { ...existingFiles, ...filesObj };
+        const allFiles = Object.assign({}, existingFiles, filesObj);
         await codeRef.set({
             description: description || existingData.description || '',
             company: company,
@@ -421,7 +739,7 @@
         });
         return true;
     }
-
+    
     async function loadExistingData(company, project, code) {
         if (!company || !project || !code) return null;
         try {
@@ -433,7 +751,7 @@
             return null;
         }
     }
-
+    
     async function cargarArchivosExistentes() {
         const company = empresaHidden.value;
         const project = proyectoHidden.value;
@@ -449,8 +767,10 @@
         }
         existingFilesCard.style.display = 'block';
         let html = '';
-        if (currentData.description) html += `<p><strong>Beskrivning:</strong> ${escapeHtml(currentData.description)}</p>`;
-        html += `<div style="margin-top: 1rem;">`;
+        if (currentData.description) {
+            html += '<p><strong>Beskrivning:</strong> ' + escapeHtml(currentData.description) + '</p>';
+        }
+        html += '<div style="margin-top: 1rem;">';
         for (const [fileId, file] of Object.entries(currentData.files)) {
             const { icon, color } = getFileIconAndColor(file.filename);
             html += `
@@ -459,18 +779,22 @@
                     <span class="file-name">${escapeHtml(file.filename)}</span>
                     <span class="file-size">${formatSize(file.size)}</span>
                     <div style="display: flex; gap: 0.3rem;">
-                        <button class="btn-secondary" style="padding: 0.2rem 0.6rem; font-size:0.7rem;" onclick="window.open('${file.previewUrl}', '_blank')"><i class="fas fa-eye"></i> Visa</button>
-                        <button class="btn-secondary delete-single-file" data-fileid="${fileId}" style="background:#fee2e2; color:#b91c2c;"><i class="fas fa-trash"></i> Ta bort</button>
+                        <button class="btn-secondary" style="padding: 0.2rem 0.6rem; font-size:0.7rem;" onclick="window.open('${file.previewUrl}', '_blank')">
+                            <i class="fas fa-eye"></i> Visa
+                        </button>
+                        <button class="btn-secondary delete-single-file" data-fileid="${fileId}" style="background:#fee2e2; color:#b91c2c;">
+                            <i class="fas fa-trash"></i> Ta bort
+                        </button>
                     </div>
                 </div>
             `;
         }
-        html += `</div>`;
+        html += '</div>';
         existingFilesList.innerHTML = html;
         deleteCodeBtn.style.display = 'inline-flex';
         
-        document.querySelectorAll('.delete-single-file').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+        document.querySelectorAll('.delete-single-file').forEach(function(btn) {
+            btn.addEventListener('click', async function(e) {
                 const fileId = btn.getAttribute('data-fileid');
                 if (confirm('Ta bort denna fil?')) {
                     await deleteSingleFile(empresaHidden.value, proyectoHidden.value, codeInput.value.trim().toUpperCase(), fileId);
@@ -478,27 +802,27 @@
             });
         });
     }
-
+    
     async function deleteSingleFile(company, project, code, fileId) {
         const path = getFirebasePath(company, project, code);
-        await database.ref(`${path}/files/${fileId}`).remove();
+        await database.ref(path + '/files/' + fileId).remove();
         showToast('✅ Fil borttagen');
         await cargarArchivosExistentes();
     }
-
+    
     async function deleteEntireCode(company, project, code) {
-        if (!confirm(`Är du säker på att du vill ta bort ALLA filer för koden ${code}?`)) return;
+        if (!confirm('Är du säker på att du vill ta bort ALLA filer för koden ' + code + '?')) return;
         const path = getFirebasePath(company, project, code);
         await database.ref(path).remove();
         showToast('✅ Kod och alla filer borttagna');
         existingFilesCard.style.display = 'none';
         currentData = null;
     }
-
-    deleteCodeBtn.addEventListener('click', async () => {
+    
+    deleteCodeBtn.addEventListener('click', async function() {
         await deleteEntireCode(empresaHidden.value, proyectoHidden.value, codeInput.value.trim().toUpperCase());
     });
-
+    
     async function uploadFiles() {
         const company = empresaHidden.value;
         const project = proyectoHidden.value;
@@ -514,17 +838,17 @@
         let completed = 0;
         const total = selectedFiles.length;
         const uploadedFiles = [];
-        showToast(`📤 Laddar upp ${total} fil(er)...`);
+        showToast('📤 Laddar upp ' + total + ' fil(er)...');
         
         for (let i = 0; i < selectedFiles.length; i++) {
             const result = await uploadFileToCloudinary(selectedFiles[i], company, project, code);
             if (result.success) {
                 uploadedFiles.push(result);
             } else {
-                showToast(`❌ Misslyckades: ${result.name}`, true);
+                showToast('❌ Misslyckades: ' + result.name, true);
             }
             completed++;
-            progressFill.style.width = `${(completed/total)*100}%`;
+            progressFill.style.width = (completed / total) * 100 + '%';
         }
         
         if (uploadedFiles.length > 0) {
@@ -534,7 +858,7 @@
             let baseUrl = window.location.href;
             if (baseUrl.includes('index.html')) baseUrl = baseUrl.replace('index.html', '');
             if (!baseUrl.endsWith('/')) baseUrl += '/';
-            const ENLACE = `${baseUrl}viewer.html?company=${encodeURIComponent(company)}&project=${encodeURIComponent(project)}&code=${encodeURIComponent(code)}`;
+            const ENLACE = baseUrl + 'viewer.html?company=' + encodeURIComponent(company) + '&project=' + encodeURIComponent(project) + '&code=' + encodeURIComponent(code);
             
             resultContainer.style.display = 'block';
             resultContainer.innerHTML = `
@@ -547,61 +871,72 @@
                 <button id="copyLinkBtn" class="btn-primary"><i class="fas fa-copy"></i> Kopiera länk</button>
                 <a href="${ENLACE}" target="_blank" class="btn-secondary" style="text-decoration:none;"> Testa länk</a>
             `;
-            document.getElementById('copyLinkBtn')?.addEventListener('click', () => {
+            document.getElementById('copyLinkBtn')?.addEventListener('click', function() {
                 document.getElementById('linkInput').select();
                 document.execCommand('copy');
                 showToast('📋 Länk kopierad');
             });
             await cargarArchivosExistentes();
-            showToast(`✅ ${uploadedFiles.length} fil(er) uppladdade`);
+            showToast('✅ ' + uploadedFiles.length + ' fil(er) uppladdade');
         }
         selectedFiles = [];
         renderFileList();
         uploadBtn.disabled = false;
-        setTimeout(() => {
+        setTimeout(function() {
             progressBar.style.display = 'none';
             progressFill.style.width = '0%';
         }, 1000);
     }
-
+    
     function clearAll() {
         selectedFiles = [];
         renderFileList();
         fileInput.value = '';
         showToast('🧹 Rensat');
     }
-
-    manageBtn.addEventListener('click', () => {
-        mostrarModalGestion(() => {
+    
+    manageBtn.addEventListener('click', function() {
+        mostrarModalGestion(function() {
             actualizarDropdownEmpresas();
             if (empresaHidden.value) actualizarProyectosPorEmpresa(empresaHidden.value);
             cargarArchivosExistentes();
         });
     });
-
+    
     let debounceTimer;
-    codeInput.addEventListener('input', () => {
+    codeInput.addEventListener('input', function() {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => cargarArchivosExistentes(), 500);
+        debounceTimer = setTimeout(function() {
+            cargarArchivosExistentes();
+        }, 500);
     });
-
-    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-    dropzone.addEventListener('drop', e => {
+    
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropzone.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', function() {
+        dropzone.classList.remove('drag-over');
+    });
+    dropzone.addEventListener('drop', function(e) {
         e.preventDefault();
         dropzone.classList.remove('drag-over');
-        selectedFiles.push(...Array.from(e.dataTransfer.files));
+        const files = Array.from(e.dataTransfer.files);
+        selectedFiles.push.apply(selectedFiles, files);
         renderFileList();
     });
-    dropzone.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', e => {
-        selectedFiles.push(...Array.from(e.target.files));
+    dropzone.addEventListener('click', function() {
+        fileInput.click();
+    });
+    fileInput.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        selectedFiles.push.apply(selectedFiles, files);
         renderFileList();
         fileInput.value = '';
     });
     uploadBtn.addEventListener('click', uploadFiles);
     clearBtn.addEventListener('click', clearAll);
-
+    
     setupDropdowns();
     actualizarDropdownEmpresas();
     renderFileList();
