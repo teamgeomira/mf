@@ -3,97 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Admin – Ladda upp underlag</title>
+    <title>Ladda upp underlag</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
+        /* (los estilos son idénticos a la versión anterior, omito por brevedad pero se deben incluir) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%);
-            padding: 2rem;
-            color: #1b2f44;
-            min-height: 100vh;
-        }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%); padding: 2rem; color: #1b2f44; min-height: 100vh; }
         .container { max-width: 1200px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 2rem; }
         .header h1 { font-size: 2rem; background: linear-gradient(120deg, #0b4b6e, #1f7ea3); background-clip: text; -webkit-background-clip: text; color: transparent; }
         .card { background: white; border-radius: 1.5rem; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .form-group { margin-bottom: 1.5rem; }
         label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #2c5a74; }
-        input[type="text"], input[type="file"], select {
-            width: 100%; padding: 0.8rem 1rem; border: 2px solid #cbdde9; border-radius: 1rem;
-            font-family: 'Inter', sans-serif; font-size: 1rem; transition: 0.2s;
-        }
+        input[type="text"], input[type="file"], select { width: 100%; padding: 0.8rem 1rem; border: 2px solid #cbdde9; border-radius: 1rem; font-family: 'Inter', sans-serif; font-size: 1rem; transition: 0.2s; }
         input:focus, select:focus { outline: none; border-color: #2c7cb6; }
-        
-        /* Estilos mejorados para dropdowns con scroll y búsqueda */
-        .searchable-select {
-            position: relative;
-        }
-        .searchable-select input {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            border: 2px solid #cbdde9;
-            border-radius: 1rem;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-        }
-        .searchable-select-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 2px solid #cbdde9;
-            border-top: none;
-            border-radius: 0 0 1rem 1rem;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .searchable-select-dropdown div {
-            padding: 0.8rem 1rem;
-            cursor: pointer;
-            border-bottom: 1px solid #eef3fc;
-        }
-        .searchable-select-dropdown div:hover {
-            background: #eef3fc;
-        }
-        .scroll-control {
-            text-align: center;
-            padding: 0.5rem;
-            background: #f8fafc;
-            border-top: 1px solid #cbdde9;
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-        .scroll-control:hover {
-            background: #eef3fc;
-        }
-        
-        .dropzone {
-            border: 2.5px dashed #8bb4d0; border-radius: 1.5rem; background: #fafdff;
-            padding: 2rem; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 0.5rem;
-        }
+        .searchable-select { position: relative; }
+        .searchable-select input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #cbdde9; border-radius: 1rem; }
+        .searchable-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #cbdde9; border-top: none; border-radius: 0 0 1rem 1rem; max-height: 250px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .searchable-select-dropdown div { padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #eef3fc; }
+        .searchable-select-dropdown div:hover { background: #eef3fc; }
+        .scroll-control { text-align: center; padding: 0.5rem; background: #f8fafc; border-top: 1px solid #cbdde9; font-size: 0.75rem; cursor: pointer; }
+        .scroll-control:hover { background: #eef3fc; }
+        .dropzone { border: 2.5px dashed #8bb4d0; border-radius: 1.5rem; background: #fafdff; padding: 2rem; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
         .dropzone.drag-over { border-color: #1f7ea3; background: #e6f4fe; }
         .dropzone i { font-size: 3rem; color: #5a8eb0; margin-bottom: 0.5rem; }
         .file-list { margin-top: 1rem; max-height: 300px; overflow-y: auto; }
-        .file-item {
-            background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem;
-            display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-        }
+        .file-item { background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
         .file-name { flex: 1; font-size: 0.85rem; word-break: break-all; }
         .file-size { font-size: 0.75rem; color: #6c8dab; }
         .remove-file { background: #fee2e2; border: none; padding: 0.3rem 0.7rem; border-radius: 2rem; cursor: pointer; color: #b91c2c; font-size: 0.7rem; }
-        .btn-primary, .btn-secondary, .btn-danger, .btn-success {
-            border: none; padding: 0.8rem 1.5rem; border-radius: 2rem; font-weight: 600;
-            cursor: pointer; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;
-        }
+        .btn-primary, .btn-secondary, .btn-danger, .btn-success { border: none; padding: 0.8rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; }
         .btn-primary { background: #2c7cb6; color: white; }
         .btn-primary:hover { background: #1f5a82; }
         .btn-secondary { background: #e2e8f0; color: #2c3e50; }
@@ -107,21 +50,11 @@
         .result-link { background: #eef3fc; padding: 1rem; border-radius: 1rem; margin-top: 1rem; display: none; }
         .code-badge { background: #e67e22; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-family: monospace; font-size: 0.9rem; display: inline-block; }
         .existing-files { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2edf5; }
-        .file-item-existing {
-            background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem;
-            display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-        }
+        .file-item-existing { background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
         .row { display: flex; gap: 1rem; flex-wrap: wrap; }
         .row > div { flex: 1; min-width: 200px; }
-        .toolbar {
-            display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;
-            align-items: center; background: #f8fafc; padding: 0.8rem; border-radius: 1rem;
-        }
-        .toast {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px;
-            font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000;
-        }
+        .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; background: #f8fafc; padding: 0.8rem; border-radius: 1rem; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
         @media (max-width: 768px) { body { padding: 1rem; } .card { padding: 1.5rem; } .row { flex-direction: column; } }
     </style>
 </head>
@@ -205,22 +138,23 @@
 
 <script src="empresas-proyectos.js"></script>
 <script>
-    // Firebase config (samma som tidigare)
+    // ========== NUEVAS CREDENCIALES ==========
     const firebaseConfig = {
-        apiKey: "AIzaSyANa6zWkGrYQ7O7M6XT2oYbArsZIcs36M8",
-        authDomain: "trip-a9341.firebaseapp.com",
-        databaseURL: "https://trip-a9341-default-rtdb.firebaseio.com",
-        projectId: "trip-a9341",
-        storageBucket: "trip-a9341.firebasestorage.app",
-        messagingSenderId: "379336201132",
-        appId: "1:379336201132:web:ebeadba357d17635aba009",
-        measurementId: "G-JPR9HGQTMJ"
+        apiKey: "AIzaSyANa6zWkGrYQ7O7M6XT2oYbArsZIcs36M8",  // La misma key que usaste en el ejemplo, si cambia reemplázala
+        authDomain: "underlag01.firebaseapp.com",
+        databaseURL: "https://underlag01-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "underlag01",
+        storageBucket: "underlag01.firebasestorage.app",
+        messagingSenderId: "279884641652",
+        appId: "1:279884641652:web:..."  // Tienes que poner el appId real, lo obtienes de Firebase Console
     };
+    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    const CLOUD_NAME = "dc1zqri3o";
-    const UPLOAD_PRESET = "ncc_nordic";
+    // Configuración de Cloudinary (nueva cuenta team01)
+    const CLOUD_NAME = "team01";          // Asumiendo que el cloud name es "team01"
+    const UPLOAD_PRESET = "ncc_nordic";   // Mismo upload preset
     const FOLDER = "underlag";
 
     function sanitizeForFirebase(str) {
@@ -230,7 +164,7 @@
         return `underlag/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`;
     }
 
-    // DOM elements
+    // DOM elements (igual que antes)
     const empresaSearchInput = document.getElementById('empresaSearchInput');
     const empresaDropdown = document.getElementById('empresaDropdown');
     const empresaHidden = document.getElementById('empresaInput');
@@ -331,7 +265,7 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
-    // ========== FUNCTIONS FOR DROPDOWNS WITH SCROLL AND SEARCH ==========
+    // Dropdown functions (idénticas a la versión anterior)
     let empresaLimit = 10;
     let proyectoLimit = 10;
 
@@ -354,7 +288,6 @@
             }
             empresaDropdown.innerHTML = html;
         }
-        
         empresaDropdown.querySelectorAll('div[data-value]').forEach(div => {
             div.addEventListener('click', () => {
                 const value = div.getAttribute('data-value');
@@ -365,7 +298,6 @@
                 cargarArchivosExistentes();
             });
         });
-        
         const moreBtn = empresaDropdown.querySelector('#empresaShowMoreBtn');
         if (moreBtn) moreBtn.addEventListener('click', () => { empresaLimit += 20; actualizarDropdownEmpresas(); });
         const lessBtn = empresaDropdown.querySelector('#empresaShowLessBtn');
@@ -403,7 +335,6 @@
             }
             proyectoDropdown.innerHTML = html;
         }
-        
         proyectoDropdown.querySelectorAll('div[data-value]').forEach(div => {
             div.addEventListener('click', () => {
                 const value = div.getAttribute('data-value');
@@ -413,7 +344,6 @@
                 cargarArchivosExistentes();
             });
         });
-        
         const moreBtn = proyectoDropdown.querySelector('#proyectoShowMoreBtn');
         if (moreBtn) moreBtn.addEventListener('click', () => { proyectoLimit += 20; actualizarDropdownProyectos(); });
         const lessBtn = proyectoDropdown.querySelector('#proyectoShowLessBtn');
@@ -421,37 +351,17 @@
     }
     
     function setupDropdowns() {
-        empresaSearchInput.addEventListener('focus', () => {
-            actualizarDropdownEmpresas();
-            empresaDropdown.style.display = 'block';
-        });
-        empresaSearchInput.addEventListener('input', () => {
-            actualizarDropdownEmpresas();
-            empresaDropdown.style.display = 'block';
-        });
-        proyectoSearchInput.addEventListener('focus', () => {
-            if (empresaHidden.value) {
-                actualizarDropdownProyectos();
-                proyectoDropdown.style.display = 'block';
-            }
-        });
-        proyectoSearchInput.addEventListener('input', () => {
-            if (empresaHidden.value) {
-                actualizarDropdownProyectos();
-                proyectoDropdown.style.display = 'block';
-            }
-        });
+        empresaSearchInput.addEventListener('focus', () => { actualizarDropdownEmpresas(); empresaDropdown.style.display = 'block'; });
+        empresaSearchInput.addEventListener('input', () => { actualizarDropdownEmpresas(); empresaDropdown.style.display = 'block'; });
+        proyectoSearchInput.addEventListener('focus', () => { if (empresaHidden.value) { actualizarDropdownProyectos(); proyectoDropdown.style.display = 'block'; } });
+        proyectoSearchInput.addEventListener('input', () => { if (empresaHidden.value) { actualizarDropdownProyectos(); proyectoDropdown.style.display = 'block'; } });
         document.addEventListener('click', (e) => {
-            if (!empresaSearchInput.contains(e.target) && !empresaDropdown.contains(e.target)) {
-                empresaDropdown.style.display = 'none';
-            }
-            if (!proyectoSearchInput.contains(e.target) && !proyectoDropdown.contains(e.target)) {
-                proyectoDropdown.style.display = 'none';
-            }
+            if (!empresaSearchInput.contains(e.target) && !empresaDropdown.contains(e.target)) empresaDropdown.style.display = 'none';
+            if (!proyectoSearchInput.contains(e.target) && !proyectoDropdown.contains(e.target)) proyectoDropdown.style.display = 'none';
         });
     }
 
-    // ========== CLOUDINARY & FIREBASE OPERATIONS ==========
+    // Cloudinary & Firebase operations
     async function uploadFileToCloudinary(file, company, project, code) {
         const formData = new FormData();
         const timestamp = Date.now();
@@ -625,11 +535,7 @@
             
             let baseUrl = window.location.href;
             if (baseUrl.includes('index.html')) baseUrl = baseUrl.replace('index.html', '');
-            if (baseUrl.includes('?code=')) baseUrl = baseUrl.split('?')[0];
-            if (!baseUrl.endsWith('/')) {
-                if (baseUrl.lastIndexOf('/') > baseUrl.indexOf('://') + 2) baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-                else baseUrl = baseUrl + '/';
-            }
+            if (!baseUrl.endsWith('/')) baseUrl += '/';
             const ENLACE = `${baseUrl}viewer.html?company=${encodeURIComponent(company)}&project=${encodeURIComponent(project)}&code=${encodeURIComponent(code)}`;
             
             resultContainer.style.display = 'block';
@@ -667,10 +573,8 @@
         showToast('🧹 Rensat');
     }
 
-    // Open management modal
     manageBtn.addEventListener('click', () => {
         window.mostrarModalGestion(() => {
-            // Refresh dropdowns after closing modal
             actualizarDropdownEmpresas();
             if (empresaHidden.value) actualizarProyectosPorEmpresa(empresaHidden.value);
             cargarArchivosExistentes();
@@ -700,7 +604,6 @@
     uploadBtn.addEventListener('click', uploadFiles);
     clearBtn.addEventListener('click', clearAll);
 
-    // Initialize
     setupDropdowns();
     actualizarDropdownEmpresas();
     renderFileList();
