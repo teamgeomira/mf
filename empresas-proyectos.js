@@ -53,6 +53,29 @@ async function getProyectos(empresa) {
     }
 }
 
+// Hämta alla projekt från alla företag
+async function getAllProyectos() {
+    if (!dbRef) {
+        return [];
+    }
+    try {
+        const empresas = await getEmpresas();
+        const allaProjekt = [];
+        for (let i = 0; i < empresas.length; i++) {
+            const empresa = empresas[i];
+            const projekt = await getProyectos(empresa);
+            for (let j = 0; j < projekt.length; j++) {
+                const proj = projekt[j];
+                allaProjekt.push({ empresa: empresa, projekt: proj });
+            }
+        }
+        return allaProjekt;
+    } catch (error) {
+        console.error('Fel vid hämtning av alla projekt:', error);
+        return [];
+    }
+}
+
 // Lägg till ett nytt företag i Firebase
 async function agregarEmpresa(empresa) {
     if (!empresa || empresa.trim() === "") {
@@ -243,9 +266,14 @@ async function filtrarEmpresas(searchTerm) {
     if (!searchTerm) {
         return empresas;
     }
-    return empresas.filter(function(emp) {
-        return emp.toLowerCase().includes(searchTerm.toLowerCase());
-    });
+    const filtered = [];
+    for (let i = 0; i < empresas.length; i++) {
+        const emp = empresas[i];
+        if (emp.toLowerCase().includes(searchTerm.toLowerCase())) {
+            filtered.push(emp);
+        }
+    }
+    return filtered;
 }
 
 // Filtrera projekt baserat på sökterm
@@ -254,9 +282,14 @@ async function filtrarProyectos(empresa, searchTerm) {
     if (!searchTerm) {
         return proyectos;
     }
-    return proyectos.filter(function(proj) {
-        return proj.toLowerCase().includes(searchTerm.toLowerCase());
-    });
+    const filtered = [];
+    for (let i = 0; i < proyectos.length; i++) {
+        const proj = proyectos[i];
+        if (proj.toLowerCase().includes(searchTerm.toLowerCase())) {
+            filtered.push(proj);
+        }
+    }
+    return filtered;
 }
 
 // ========== MODALT FÖNSTER FÖR HANTERING AV FÖRETAG OCH PROJEKT ==========
@@ -350,7 +383,7 @@ function mostrarModalGestion(onCloseCallback) {
             contentDiv.innerHTML = html;
         }
         
-        // Bind events för alla knappar
+        // Bind events för edit-empresa knappar
         const editEmpresaBtns = modal.querySelectorAll('.edit-empresa-btn');
         for (let i = 0; i < editEmpresaBtns.length; i++) {
             const btn = editEmpresaBtns[i];
@@ -361,7 +394,9 @@ function mostrarModalGestion(onCloseCallback) {
                     const success = await editarEmpresa(oldName, newName);
                     if (success) {
                         await renderLista();
-                        if (onCloseCallback) onCloseCallback();
+                        if (onCloseCallback) {
+                            onCloseCallback();
+                        }
                     } else {
                         alert("Kunde inte ändra. Namnet kanske redan finns.");
                     }
@@ -369,6 +404,7 @@ function mostrarModalGestion(onCloseCallback) {
             });
         }
         
+        // Bind events för delete-empresa knappar
         const deleteEmpresaBtns = modal.querySelectorAll('.delete-empresa-btn');
         for (let i = 0; i < deleteEmpresaBtns.length; i++) {
             const btn = deleteEmpresaBtns[i];
@@ -377,11 +413,14 @@ function mostrarModalGestion(onCloseCallback) {
                 if (confirm('Ta bort företaget "' + emp + '" och alla dess projekt?')) {
                     await eliminarEmpresa(emp);
                     await renderLista();
-                    if (onCloseCallback) onCloseCallback();
+                    if (onCloseCallback) {
+                        onCloseCallback();
+                    }
                 }
             });
         }
         
+        // Bind events för edit-proyecto knappar
         const editProyectoBtns = modal.querySelectorAll('.edit-proyecto-btn');
         for (let i = 0; i < editProyectoBtns.length; i++) {
             const btn = editProyectoBtns[i];
@@ -393,7 +432,9 @@ function mostrarModalGestion(onCloseCallback) {
                     const success = await editarProyecto(emp, oldProj, newProj);
                     if (success) {
                         await renderLista();
-                        if (onCloseCallback) onCloseCallback();
+                        if (onCloseCallback) {
+                            onCloseCallback();
+                        }
                     } else {
                         alert("Kunde inte ändra. Projektet kanske redan finns.");
                     }
@@ -401,6 +442,7 @@ function mostrarModalGestion(onCloseCallback) {
             });
         }
         
+        // Bind events för delete-proyecto knappar
         const deleteProyectoBtns = modal.querySelectorAll('.delete-proyecto-btn');
         for (let i = 0; i < deleteProyectoBtns.length; i++) {
             const btn = deleteProyectoBtns[i];
@@ -410,11 +452,14 @@ function mostrarModalGestion(onCloseCallback) {
                 if (confirm('Ta bort projektet "' + proj + '" från ' + emp + '?')) {
                     await eliminarProyecto(emp, proj);
                     await renderLista();
-                    if (onCloseCallback) onCloseCallback();
+                    if (onCloseCallback) {
+                        onCloseCallback();
+                    }
                 }
             });
         }
         
+        // Bind events för add-proyecto knappar
         const addProyectoBtns = modal.querySelectorAll('.add-proyecto-btn');
         for (let i = 0; i < addProyectoBtns.length; i++) {
             const btn = addProyectoBtns[i];
@@ -425,7 +470,9 @@ function mostrarModalGestion(onCloseCallback) {
                     const success = await agregarProyecto(emp, newProj);
                     if (success) {
                         await renderLista();
-                        if (onCloseCallback) onCloseCallback();
+                        if (onCloseCallback) {
+                            onCloseCallback();
+                        }
                     } else {
                         alert("Kunde inte lägga till projekt. Det kanske redan finns.");
                     }
@@ -433,6 +480,7 @@ function mostrarModalGestion(onCloseCallback) {
             });
         }
         
+        // Bind events för add-empresa knapp
         const addEmpresaBtn = modal.querySelector('#addEmpresaModalBtn');
         if (addEmpresaBtn) {
             addEmpresaBtn.addEventListener('click', async function() {
@@ -441,7 +489,9 @@ function mostrarModalGestion(onCloseCallback) {
                     const success = await agregarEmpresa(newEmp);
                     if (success) {
                         await renderLista();
-                        if (onCloseCallback) onCloseCallback();
+                        if (onCloseCallback) {
+                            onCloseCallback();
+                        }
                     } else {
                         alert("Företaget finns redan eller ogiltigt namn.");
                     }
@@ -449,11 +499,14 @@ function mostrarModalGestion(onCloseCallback) {
             });
         }
         
+        // Bind events för close knapp
         const closeBtn = modal.querySelector('#closeModalBtn');
         if (closeBtn) {
             closeBtn.addEventListener('click', function() {
                 modal.remove();
-                if (onCloseCallback) onCloseCallback();
+                if (onCloseCallback) {
+                    onCloseCallback();
+                }
             });
         }
     };
@@ -461,6 +514,13 @@ function mostrarModalGestion(onCloseCallback) {
     modal.innerHTML = '<div class="modal-content" style="background: white; border-radius: 1.5rem; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; padding: 1.5rem;"></div>';
     document.body.appendChild(modal);
     renderLista();
+}
+
+// Funktion för att ladda om dropdowns (anropas från index.html vid behov)
+async function reloadEmpresasDropdown() {
+    if (onEmpresasChangedCallback) {
+        await onEmpresasChangedCallback();
+    }
 }
 
 // Hjälpfunktion för att escapeta HTML-kod
