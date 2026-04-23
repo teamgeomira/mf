@@ -298,22 +298,14 @@
     // Hämta ikon och färg baserat på filtyp
     function getFileIconAndColor(filename) {
         const ext = filename.split('.').pop().toLowerCase();
-        switch (ext) {
-            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c' };
-            case 'dwg': case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22' };
-            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': 
-                return { icon: 'fa-file-image', color: '#3498db' };
-            case 'mp4': case 'webm': case 'mov': case 'avi': 
-                return { icon: 'fa-file-video', color: '#9b59b6' };
-            case 'zip': case 'rar': case '7z': 
-                return { icon: 'fa-file-archive', color: '#f39c12' };
-            case 'doc': case 'docx': 
-                return { icon: 'fa-file-word', color: '#2980b9' };
-            case 'xls': case 'xlsx': case 'csv': 
-                return { icon: 'fa-file-excel', color: '#27ae60' };
-            default: 
-                return { icon: 'fa-file', color: '#5a8eb0' };
-        }
+        if (ext === 'pdf') return { icon: 'fa-file-pdf', color: '#e74c3c' };
+        if (ext === 'dwg' || ext === 'dxf') return { icon: 'fa-draw-polygon', color: '#e67e22' };
+        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return { icon: 'fa-file-image', color: '#3498db' };
+        if (['mp4','webm','mov','avi'].includes(ext)) return { icon: 'fa-file-video', color: '#9b59b6' };
+        if (['zip','rar','7z'].includes(ext)) return { icon: 'fa-file-archive', color: '#f39c12' };
+        if (['doc','docx'].includes(ext)) return { icon: 'fa-file-word', color: '#2980b9' };
+        if (['xls','xlsx','csv'].includes(ext)) return { icon: 'fa-file-excel', color: '#27ae60' };
+        return { icon: 'fa-file', color: '#5a8eb0' };
     }
     
     // Escapeta HTML
