@@ -93,14 +93,22 @@
     function getFileIconAndColor(filename) {
         const ext = filename.split('.').pop().toLowerCase();
         switch (ext) {
-            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c' };
-            case 'dwg': case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22' };
-            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': return { icon: 'fa-file-image', color: '#3498db' };
-            case 'mp4': case 'webm': case 'mov': case 'avi': return { icon: 'fa-file-video', color: '#9b59b6' };
-            case 'zip': case 'rar': case '7z': return { icon: 'fa-file-archive', color: '#f39c12' };
-            case 'doc': case 'docx': return { icon: 'fa-file-word', color: '#2980b9' };
-            case 'xls': case 'xlsx': case 'csv': return { icon: 'fa-file-excel', color: '#27ae60' };
-            default: return { icon: 'fa-file', color: '#5a8eb0' };
+            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c', canView: true };
+            case 'dwg': return { icon: 'fa-draw-polygon', color: '#e67e22', canView: false };
+            case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22', canView: false };
+            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': 
+                return { icon: 'fa-file-image', color: '#3498db', canView: true };
+            case 'mp4': case 'webm': case 'mov': case 'avi': 
+                return { icon: 'fa-file-video', color: '#9b59b6', canView: true };
+            case 'zip': case 'rar': case '7z': 
+                return { icon: 'fa-file-archive', color: '#f39c12', canView: false };
+            case 'doc': case 'docx': 
+                return { icon: 'fa-file-word', color: '#2980b9', canView: false };
+            case 'xls': case 'xlsx': case 'csv': 
+                return { icon: 'fa-file-excel', color: '#27ae60', canView: false };
+            case 'ppt': case 'pptx': 
+                return { icon: 'fa-file-powerpoint', color: '#e67e22', canView: false };
+            default: return { icon: 'fa-file', color: '#5a8eb0', canView: false };
         }
     }
 
@@ -109,7 +117,8 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
-    async function downloadWithOriginalName(url, originalFilename) {
+    // Función para descargar archivo con nombre original
+    async function downloadFile(url, originalFilename) {
         try {
             showToast(`⬇️ Laddar ner ${originalFilename} ...`);
             const response = await fetch(url);
@@ -130,6 +139,17 @@
         }
     }
 
+    // Función para ver archivo (solo para formatos que el navegador puede mostrar)
+    function viewFile(url, filename, canView) {
+        if (!canView) {
+            // Si no se puede ver, descargar directamente
+            downloadFile(url, filename);
+            return;
+        }
+        // Para PDF, imágenes, videos: abrir en nueva pestaña
+        window.open(url, '_blank');
+    }
+
     async function loadFromFirebase() {
         try {
             const snapshot = await database.ref(getFirebasePath()).once('value');
@@ -147,24 +167,36 @@
             return;
         }
         document.getElementById('infoDisplay').innerHTML = `<i class="fas fa-building"></i> ${escapeHtml(company)} &nbsp;|&nbsp; <i class="fas fa-project-diagram"></i> ${escapeHtml(project)} &nbsp;|&nbsp; <span class="code-badge">${escapeHtml(originalCode)}</span>`;
+        
         const data = await loadFromFirebase();
         if (!data || !data.files || Object.keys(data.files).length === 0) {
             document.getElementById('content').innerHTML = `<div class="no-files"><i class="fas fa-folder-open"></i><p>Inga underlag hittades</p></div>`;
             return;
         }
-        if (data.description) document.getElementById('descriptionContainer').innerHTML = `<div class="description"><i class="fas fa-info-circle"></i> ${escapeHtml(data.description)}</div>`;
+        
+        if (data.description) {
+            document.getElementById('descriptionContainer').innerHTML = `<div class="description"><i class="fas fa-info-circle"></i> ${escapeHtml(data.description)}</div>`;
+        }
+        
         const filesArray = Object.values(data.files);
         let html = `<div class="files-grid">`;
         for (const file of filesArray) {
-            const { icon, color } = getFileIconAndColor(file.filename);
+            const { icon, color, canView } = getFileIconAndColor(file.filename);
             html += `
                 <div class="file-card">
                     <div class="file-icon" style="color:${color};"><i class="fas ${icon} fa-2x"></i></div>
                     <div class="file-name">${escapeHtml(file.filename)}</div>
-                    <div class="file-meta"><span><i class="fas fa-weight-hanging"></i> ${formatSize(file.size)}</span><span><i class="fas fa-calendar"></i> ${new Date(file.date).toLocaleDateString('sv-SE')}</span></div>
+                    <div class="file-meta">
+                        <span><i class="fas fa-weight-hanging"></i> ${formatSize(file.size)}</span>
+                        <span><i class="fas fa-calendar"></i> ${new Date(file.date).toLocaleDateString('sv-SE')}</span>
+                    </div>
                     <div class="file-actions">
-                        <button class="btn btn-view" onclick="window.open('${file.previewUrl}', '_blank')"><i class="fas fa-eye"></i> Visa</button>
-                        <button class="btn btn-download" onclick="downloadWithOriginalName('${file.downloadUrl}', '${escapeHtml(file.filename)}')"><i class="fas fa-download"></i> Ladda ner</button>
+                        <button class="btn btn-view" onclick="viewFile('${file.previewUrl}', '${escapeHtml(file.filename)}', ${canView})">
+                            <i class="fas fa-eye"></i> ${canView ? 'Visa' : 'Ladda ner'}
+                        </button>
+                        <button class="btn btn-download" onclick="downloadFile('${file.downloadUrl}', '${escapeHtml(file.filename)}')">
+                            <i class="fas fa-download"></i> Ladda ner
+                        </button>
                     </div>
                 </div>
             `;
@@ -173,6 +205,7 @@
         document.getElementById('content').innerHTML = html;
         showToast(`📄 ${filesArray.length} dokument laddades`);
     }
+    
     init();
 </script>
 </body>
