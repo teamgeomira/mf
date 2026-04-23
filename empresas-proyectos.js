@@ -5,11 +5,13 @@
 
 // Referens till Firebase-databasen (initieras i index.html)
 let dbRef = null;
-const currentUserId = "admin"; // Fast användar-ID för detta system
+let currentUserId = "admin";
+let onEmpresasChangedCallback = null;
 
 // Initiera modulen med Firebase-databasreferens
-function initEmpresasProyectos(databaseRef) {
+function initEmpresasProyectos(databaseRef, callback) {
     dbRef = databaseRef;
+    onEmpresasChangedCallback = callback;
     console.log("✅ Företags- och projektmodul initierad med Firebase");
 }
 
@@ -22,7 +24,8 @@ async function getEmpresas() {
     try {
         const snapshot = await dbRef.ref(`empresas/${currentUserId}`).once('value');
         const data = snapshot.val();
-        if (data) {
+        if (data && typeof data === 'object') {
+            // Returnera nycklarna (företagsnamnen) sorterade
             return Object.keys(data).sort();
         }
         return [];
@@ -40,33 +43,12 @@ async function getProyectos(empresa) {
     try {
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresa}`).once('value');
         const proyectos = snapshot.val();
-        if (proyectos) {
-            return Object.values(proyectos).sort();
+        if (proyectos && Array.isArray(proyectos)) {
+            return proyectos.sort();
         }
         return [];
     } catch (error) {
         console.error('Fel vid hämtning av projekt:', error);
-        return [];
-    }
-}
-
-// Hämta alla projekt från alla företag
-async function getAllProyectos() {
-    if (!dbRef) {
-        return [];
-    }
-    try {
-        const empresas = await getEmpresas();
-        const allaProjekt = [];
-        for (const empresa of empresas) {
-            const projekt = await getProyectos(empresa);
-            for (const proj of projekt) {
-                allaProjekt.push({ empresa, projekt: proj });
-            }
-        }
-        return allaProjekt;
-    } catch (error) {
-        console.error('Fel vid hämtning av alla projekt:', error);
         return [];
     }
 }
@@ -78,8 +60,20 @@ async function agregarEmpresa(empresa) {
     }
     try {
         const empresaClean = empresa.trim();
+        // Kontrollera om företaget redan finns
+        const existing = await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
+        if (existing.exists()) {
+            console.log(`⚠️ Företag "${empresaClean}" finns redan`);
+            return false;
+        }
+        // Skapa företaget med en tom array för projekt
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set([]);
         console.log(`✅ Företag "${empresaClean}" har lagts till`);
+        
+        // Uppdatera dropdowns om callback finns
+        if (onEmpresasChangedCallback) {
+            await onEmpresasChangedCallback();
+        }
         return true;
     } catch (error) {
         console.error('Fel vid tillägg av företag:', error);
@@ -96,9 +90,14 @@ async function agregarProyecto(empresa, proyecto) {
         const empresaClean = empresa.trim();
         const proyectoClean = proyecto.trim();
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
-        const proyectos = snapshot.val() || [];
+        let proyectos = snapshot.val() || [];
+        
+        if (!Array.isArray(proyectos)) {
+            proyectos = [];
+        }
         
         if (proyectos.includes(proyectoClean)) {
+            console.log(`⚠️ Projekt "${proyectoClean}" finns redan under ${empresaClean}`);
             return false;
         }
         
@@ -106,6 +105,11 @@ async function agregarProyecto(empresa, proyecto) {
         proyectos.sort();
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
         console.log(`✅ Projekt "${proyectoClean}" har lagts till under ${empresaClean}`);
+        
+        // Uppdatera dropdowns om callback finns
+        if (onEmpresasChangedCallback) {
+            await onEmpresasChangedCallback();
+        }
         return true;
     } catch (error) {
         console.error('Fel vid tillägg av projekt:', error);
@@ -129,6 +133,10 @@ async function editarEmpresa(oldName, newName) {
         await dbRef.ref(`empresas/${currentUserId}/${newNameClean}`).set(proyectos);
         await dbRef.ref(`empresas/${currentUserId}/${oldName}`).remove();
         console.log(`✅ Företag "${oldName}" har bytt namn till "${newNameClean}"`);
+        
+        if (onEmpresasChangedCallback) {
+            await onEmpresasChangedCallback();
+        }
         return true;
     } catch (error) {
         console.error('Fel vid redigering av företag:', error);
@@ -148,7 +156,11 @@ async function editarProyecto(empresa, oldProyecto, newProyecto) {
         const empresaClean = empresa.trim();
         const newProyectoClean = newProyecto.trim();
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
-        const proyectos = snapshot.val() || [];
+        let proyectos = snapshot.val() || [];
+        
+        if (!Array.isArray(proyectos)) {
+            proyectos = [];
+        }
         
         const index = proyectos.indexOf(oldProyecto);
         if (index === -1) {
@@ -162,6 +174,10 @@ async function editarProyecto(empresa, oldProyecto, newProyecto) {
         proyectos.sort();
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
         console.log(`✅ Projekt "${oldProyecto}" har bytt namn till "${newProyectoClean}"`);
+        
+        if (onEmpresasChangedCallback) {
+            await onEmpresasChangedCallback();
+        }
         return true;
     } catch (error) {
         console.error('Fel vid redigering av projekt:', error);
@@ -177,6 +193,10 @@ async function eliminarEmpresa(empresa) {
     try {
         await dbRef.ref(`empresas/${currentUserId}/${empresa}`).remove();
         console.log(`✅ Företag "${empresa}" har tagits bort`);
+        
+        if (onEmpresasChangedCallback) {
+            await onEmpresasChangedCallback();
+        }
         return true;
     } catch (error) {
         console.error('Fel vid borttagning av företag:', error);
@@ -192,7 +212,11 @@ async function eliminarProyecto(empresa, proyecto) {
     try {
         const empresaClean = empresa.trim();
         const snapshot = await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).once('value');
-        const proyectos = snapshot.val() || [];
+        let proyectos = snapshot.val() || [];
+        
+        if (!Array.isArray(proyectos)) {
+            proyectos = [];
+        }
         
         const index = proyectos.indexOf(proyecto);
         if (index === -1) {
@@ -202,6 +226,10 @@ async function eliminarProyecto(empresa, proyecto) {
         proyectos.splice(index, 1);
         await dbRef.ref(`empresas/${currentUserId}/${empresaClean}`).set(proyectos);
         console.log(`✅ Projekt "${proyecto}" har tagits bort från ${empresaClean}`);
+        
+        if (onEmpresasChangedCallback) {
+            await onEmpresasChangedCallback();
+        }
         return true;
     } catch (error) {
         console.error('Fel vid borttagning av projekt:', error);
@@ -215,7 +243,9 @@ async function filtrarEmpresas(searchTerm) {
     if (!searchTerm) {
         return empresas;
     }
-    return empresas.filter(emp => emp.toLowerCase().includes(searchTerm.toLowerCase()));
+    return empresas.filter(function(emp) {
+        return emp.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 }
 
 // Filtrera projekt baserat på sökterm
@@ -224,7 +254,9 @@ async function filtrarProyectos(empresa, searchTerm) {
     if (!searchTerm) {
         return proyectos;
     }
-    return proyectos.filter(proj => proj.toLowerCase().includes(searchTerm.toLowerCase()));
+    return proyectos.filter(function(proj) {
+        return proj.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 }
 
 // ========== MODALT FÖNSTER FÖR HANTERING AV FÖRETAG OCH PROJEKT ==========
@@ -250,7 +282,12 @@ function mostrarModalGestion(onCloseCallback) {
         const empresas = await getEmpresas();
         let html = `<div style="max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">`;
         
-        for (const emp of empresas) {
+        if (empresas.length === 0) {
+            html += `<div style="text-align:center; padding:2rem; color:#999;">Inga företag har lagts till än.</div>`;
+        }
+        
+        for (let i = 0; i < empresas.length; i++) {
+            const emp = empresas[i];
             const proyectos = await getProyectos(emp);
             html += `
                 <div style="margin-bottom: 1rem; border: 1px solid #e2edf5; border-radius: 0.8rem; padding: 0.8rem;">
@@ -269,20 +306,25 @@ function mostrarModalGestion(onCloseCallback) {
                         <div style="font-size:0.8rem; color:#4a6f8f; margin-bottom: 0.3rem;">Projekt:</div>
                         <ul style="margin-left: 1.5rem;">
             `;
-            for (const proj of proyectos) {
-                html += `
-                    <li style="margin-bottom: 0.3rem; display: flex; justify-content: space-between; align-items: center;">
-                        <span>📁 ${escapeHtml(proj)}</span>
-                        <div>
-                            <button class="edit-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #eef3fc; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem;">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="delete-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #fee2e2; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem; color:#b91c2c;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </li>
-                `;
+            if (proyectos.length === 0) {
+                html += `<li style="color:#999;">Inga projekt</li>`;
+            } else {
+                for (let j = 0; j < proyectos.length; j++) {
+                    const proj = proyectos[j];
+                    html += `
+                        <li style="margin-bottom: 0.3rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span>📁 ${escapeHtml(proj)}</span>
+                            <div>
+                                <button class="edit-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #eef3fc; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem;">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="delete-proyecto-btn" data-emp="${escapeHtml(emp)}" data-proj="${escapeHtml(proj)}" style="background: #fee2e2; border: none; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size:0.7rem; color:#b91c2c;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                }
             }
             html += `
                         </ul>
@@ -309,8 +351,10 @@ function mostrarModalGestion(onCloseCallback) {
         }
         
         // Bind events för alla knappar
-        modal.querySelectorAll('.edit-empresa-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
+        const editEmpresaBtns = modal.querySelectorAll('.edit-empresa-btn');
+        for (let i = 0; i < editEmpresaBtns.length; i++) {
+            const btn = editEmpresaBtns[i];
+            btn.addEventListener('click', async function() {
                 const oldName = btn.getAttribute('data-emp');
                 const newName = prompt("Nytt företagsnamn:", oldName);
                 if (newName && newName !== oldName) {
@@ -323,21 +367,25 @@ function mostrarModalGestion(onCloseCallback) {
                     }
                 }
             });
-        });
+        }
         
-        modal.querySelectorAll('.delete-empresa-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
+        const deleteEmpresaBtns = modal.querySelectorAll('.delete-empresa-btn');
+        for (let i = 0; i < deleteEmpresaBtns.length; i++) {
+            const btn = deleteEmpresaBtns[i];
+            btn.addEventListener('click', async function() {
                 const emp = btn.getAttribute('data-emp');
-                if (confirm(`Ta bort företaget "${emp}" och alla dess projekt?`)) {
+                if (confirm('Ta bort företaget "' + emp + '" och alla dess projekt?')) {
                     await eliminarEmpresa(emp);
                     await renderLista();
                     if (onCloseCallback) onCloseCallback();
                 }
             });
-        });
+        }
         
-        modal.querySelectorAll('.edit-proyecto-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
+        const editProyectoBtns = modal.querySelectorAll('.edit-proyecto-btn');
+        for (let i = 0; i < editProyectoBtns.length; i++) {
+            const btn = editProyectoBtns[i];
+            btn.addEventListener('click', async function() {
                 const emp = btn.getAttribute('data-emp');
                 const oldProj = btn.getAttribute('data-proj');
                 const newProj = prompt("Nytt projektnamn:", oldProj);
@@ -351,22 +399,26 @@ function mostrarModalGestion(onCloseCallback) {
                     }
                 }
             });
-        });
+        }
         
-        modal.querySelectorAll('.delete-proyecto-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
+        const deleteProyectoBtns = modal.querySelectorAll('.delete-proyecto-btn');
+        for (let i = 0; i < deleteProyectoBtns.length; i++) {
+            const btn = deleteProyectoBtns[i];
+            btn.addEventListener('click', async function() {
                 const emp = btn.getAttribute('data-emp');
                 const proj = btn.getAttribute('data-proj');
-                if (confirm(`Ta bort projektet "${proj}" från ${emp}?`)) {
+                if (confirm('Ta bort projektet "' + proj + '" från ' + emp + '?')) {
                     await eliminarProyecto(emp, proj);
                     await renderLista();
                     if (onCloseCallback) onCloseCallback();
                 }
             });
-        });
+        }
         
-        modal.querySelectorAll('.add-proyecto-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
+        const addProyectoBtns = modal.querySelectorAll('.add-proyecto-btn');
+        for (let i = 0; i < addProyectoBtns.length; i++) {
+            const btn = addProyectoBtns[i];
+            btn.addEventListener('click', async function() {
                 const emp = btn.getAttribute('data-emp');
                 const newProj = prompt("Nytt projektnamn:");
                 if (newProj) {
@@ -379,11 +431,11 @@ function mostrarModalGestion(onCloseCallback) {
                     }
                 }
             });
-        });
+        }
         
         const addEmpresaBtn = modal.querySelector('#addEmpresaModalBtn');
         if (addEmpresaBtn) {
-            addEmpresaBtn.addEventListener('click', async () => {
+            addEmpresaBtn.addEventListener('click', async function() {
                 const newEmp = prompt("Nytt företagsnamn:");
                 if (newEmp) {
                     const success = await agregarEmpresa(newEmp);
@@ -399,14 +451,14 @@ function mostrarModalGestion(onCloseCallback) {
         
         const closeBtn = modal.querySelector('#closeModalBtn');
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
+            closeBtn.addEventListener('click', function() {
                 modal.remove();
                 if (onCloseCallback) onCloseCallback();
             });
         }
     };
     
-    modal.innerHTML = `<div class="modal-content" style="background: white; border-radius: 1.5rem; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; padding: 1.5rem;"></div>`;
+    modal.innerHTML = '<div class="modal-content" style="background: white; border-radius: 1.5rem; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; padding: 1.5rem;"></div>';
     document.body.appendChild(modal);
     renderLista();
 }
