@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Ladda upp underlag</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
-        /* (los estilos son idénticos a la versión anterior, omito por brevedad pero se deben incluir) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%); padding: 2rem; color: #1b2f44; min-height: 100vh; }
         .container { max-width: 1200px; margin: 0 auto; }
@@ -27,7 +26,6 @@
         .searchable-select-dropdown div { padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #eef3fc; }
         .searchable-select-dropdown div:hover { background: #eef3fc; }
         .scroll-control { text-align: center; padding: 0.5rem; background: #f8fafc; border-top: 1px solid #cbdde9; font-size: 0.75rem; cursor: pointer; }
-        .scroll-control:hover { background: #eef3fc; }
         .dropzone { border: 2.5px dashed #8bb4d0; border-radius: 1.5rem; background: #fafdff; padding: 2rem; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
         .dropzone.drag-over { border-color: #1f7ea3; background: #e6f4fe; }
         .dropzone i { font-size: 3rem; color: #5a8eb0; margin-bottom: 0.5rem; }
@@ -42,9 +40,7 @@
         .btn-secondary { background: #e2e8f0; color: #2c3e50; }
         .btn-secondary:hover { background: #cbd5e1; }
         .btn-danger { background: #fee2e2; color: #b91c2c; }
-        .btn-danger:hover { background: #fecaca; }
         .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; }
         .progress-bar { background: #d9e5f0; border-radius: 20px; height: 8px; margin: 1rem 0; overflow: hidden; }
         .progress-fill { background: linear-gradient(90deg, #2c7cb6, #4ca0d0); width: 0%; height: 100%; transition: width 0.3s; }
         .result-link { background: #eef3fc; padding: 1rem; border-radius: 1rem; margin-top: 1rem; display: none; }
@@ -138,33 +134,45 @@
 
 <script src="empresas-proyectos.js"></script>
 <script>
-    // ========== NUEVAS CREDENCIALES ==========
+    // ========== FIREBASE KONFIGURATION (underlag01) ==========
     const firebaseConfig = {
-        apiKey: "AIzaSyANa6zWkGrYQ7O7M6XT2oYbArsZIcs36M8",  // La misma key que usaste en el ejemplo, si cambia reemplázala
+        apiKey: "AIzaSyANa6zWkGrYQ7O7M6XT2oYbArsZIcs36M8",
         authDomain: "underlag01.firebaseapp.com",
         databaseURL: "https://underlag01-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "underlag01",
         storageBucket: "underlag01.firebasestorage.app",
         messagingSenderId: "279884641652",
-        appId: "1:279884641652:web:..."  // Tienes que poner el appId real, lo obtienes de Firebase Console
+        appId: "1:279884641652:web:ebeadba357d17635aba009"
     };
-    // Inicializar Firebase
+    
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+    console.log("✅ Firebase initierad - underlag01");
 
-    // Configuración de Cloudinary (nueva cuenta team01)
-    const CLOUD_NAME = "team01";          // Asumiendo que el cloud name es "team01"
-    const UPLOAD_PRESET = "ncc_nordic";   // Mismo upload preset
+    // ========== CLOUDINARY KONFIGURATION (samma som tidigare) ==========
+    const CLOUD_NAME = "dc1zqri3o";
+    const UPLOAD_PRESET = "ncc_nordic";
     const FOLDER = "underlag";
+    const API_KEY = "725351489155421";
+    const API_SECRET = "22W8BZheLQtKAw7LEayY1S60Ky4";
 
     function sanitizeForFirebase(str) {
         return str.replace(/\./g, '-').replace(/[#$\[\]\/]/g, '_').replace(/\s+/g, '_');
     }
+    
     function getFirebasePath(company, project, code) {
         return `underlag/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`;
     }
 
-    // DOM elements (igual que antes)
+    // SHA1 för Cloudinary signatur
+    async function sha1(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // DOM elements
     const empresaSearchInput = document.getElementById('empresaSearchInput');
     const empresaDropdown = document.getElementById('empresaDropdown');
     const empresaHidden = document.getElementById('empresaInput');
@@ -189,8 +197,8 @@
 
     let selectedFiles = [];
     let currentData = null;
-    let currentEmpresas = [];
-    let currentProyectos = [];
+    let empresaLimit = 10;
+    let proyectoLimit = 10;
 
     function showToast(msg, isError = false) {
         toast.textContent = msg;
@@ -205,6 +213,37 @@
         const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return 'fa-file-pdf';
+        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'fa-file-image';
+        if (['mp4','webm','mov','avi'].includes(ext)) return 'fa-file-video';
+        if (['zip','rar','7z'].includes(ext)) return 'fa-file-archive';
+        if (['dwg','dxf'].includes(ext)) return 'fa-draw-polygon';
+        if (['doc','docx'].includes(ext)) return 'fa-file-word';
+        if (['xls','xlsx','csv'].includes(ext)) return 'fa-file-excel';
+        return 'fa-file';
+    }
+
+    function getFileIconAndColor(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        switch (ext) {
+            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c' };
+            case 'dwg': case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22' };
+            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg': return { icon: 'fa-file-image', color: '#3498db' };
+            case 'mp4': case 'webm': case 'mov': case 'avi': return { icon: 'fa-file-video', color: '#9b59b6' };
+            case 'zip': case 'rar': case '7z': return { icon: 'fa-file-archive', color: '#f39c12' };
+            case 'doc': case 'docx': return { icon: 'fa-file-word', color: '#2980b9' };
+            case 'xls': case 'xlsx': case 'csv': return { icon: 'fa-file-excel', color: '#27ae60' };
+            default: return { icon: 'fa-file', color: '#5a8eb0' };
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
     function renderFileList() {
@@ -229,50 +268,10 @@
         });
     }
 
-    function getFileIcon(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        if (ext === 'pdf') return 'fa-file-pdf';
-        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'fa-file-image';
-        if (['mp4','webm','mov','avi'].includes(ext)) return 'fa-file-video';
-        if (['zip','rar','7z'].includes(ext)) return 'fa-file-archive';
-        if (['dwg','dxf'].includes(ext)) return 'fa-draw-polygon';
-        if (['doc','docx'].includes(ext)) return 'fa-file-word';
-        if (['xls','xlsx','csv'].includes(ext)) return 'fa-file-excel';
-        return 'fa-file';
-    }
-
-    function getFileIconAndColor(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        switch (ext) {
-            case 'pdf': return { icon: 'fa-file-pdf', color: '#e74c3c' };
-            case 'dwg': case 'dxf': return { icon: 'fa-draw-polygon', color: '#e67e22' };
-            case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp': case 'bmp': case 'svg':
-                return { icon: 'fa-file-image', color: '#3498db' };
-            case 'mp4': case 'webm': case 'mov': case 'avi':
-                return { icon: 'fa-file-video', color: '#9b59b6' };
-            case 'zip': case 'rar': case '7z':
-                return { icon: 'fa-file-archive', color: '#f39c12' };
-            case 'doc': case 'docx':
-                return { icon: 'fa-file-word', color: '#2980b9' };
-            case 'xls': case 'xlsx': case 'csv':
-                return { icon: 'fa-file-excel', color: '#27ae60' };
-            default: return { icon: 'fa-file', color: '#5a8eb0' };
-        }
-    }
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-    }
-
-    // Dropdown functions (idénticas a la versión anterior)
-    let empresaLimit = 10;
-    let proyectoLimit = 10;
-
+    // ========== DROPDOWN FUNCTIONS ==========
     function actualizarDropdownEmpresas() {
         const searchTerm = empresaSearchInput.value.toLowerCase();
         let empresas = window.filtrarEmpresas ? window.filtrarEmpresas(searchTerm) : [];
-        currentEmpresas = empresas;
         const showCount = Math.min(empresas.length, empresaLimit);
         const visibleEmpresas = empresas.slice(0, showCount);
         const hasMore = empresas.length > empresaLimit;
@@ -306,7 +305,6 @@
     
     function actualizarProyectosPorEmpresa(empresa) {
         const proyectos = window.getProyectos ? window.getProyectos(empresa) : [];
-        currentProyectos = proyectos;
         proyectoSearchInput.disabled = false;
         actualizarDropdownProyectos();
     }
@@ -361,7 +359,7 @@
         });
     }
 
-    // Cloudinary & Firebase operations
+    // ========== CLOUDINARY & FIREBASE ==========
     async function uploadFileToCloudinary(file, company, project, code) {
         const formData = new FormData();
         const timestamp = Date.now();
