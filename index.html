@@ -10,278 +10,48 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%);
-            padding: 2rem;
-            color: #1b2f44;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .header h1 {
-            font-size: 2rem;
-            background: linear-gradient(120deg, #0b4b6e, #1f7ea3);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-        }
-        .card {
-            background: white;
-            border-radius: 1.5rem;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #2c5a74;
-        }
-        input[type="text"], input[type="file"], select {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            border: 2px solid #cbdde9;
-            border-radius: 1rem;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            transition: 0.2s;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #2c7cb6;
-        }
-        .searchable-select {
-            position: relative;
-        }
-        .searchable-select input {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            border: 2px solid #cbdde9;
-            border-radius: 1rem;
-        }
-        .searchable-select-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 2px solid #cbdde9;
-            border-top: none;
-            border-radius: 0 0 1rem 1rem;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        .searchable-select-dropdown div {
-            padding: 0.8rem 1rem;
-            cursor: pointer;
-            border-bottom: 1px solid #eef3fc;
-        }
-        .searchable-select-dropdown div:hover {
-            background: #eef3fc;
-        }
-        .scroll-control {
-            text-align: center;
-            padding: 0.5rem;
-            background: #f8fafc;
-            border-top: 1px solid #cbdde9;
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-        .dropzone {
-            border: 2.5px dashed #8bb4d0;
-            border-radius: 1.5rem;
-            background: #fafdff;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 0.5rem;
-        }
-        .dropzone.drag-over {
-            border-color: #1f7ea3;
-            background: #e6f4fe;
-        }
-        .dropzone i {
-            font-size: 3rem;
-            color: #5a8eb0;
-            margin-bottom: 0.5rem;
-        }
-        .file-list {
-            margin-top: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .file-item {
-            background: #f0f6fc;
-            padding: 0.7rem 1rem;
-            border-radius: 0.8rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .file-name {
-            flex: 1;
-            font-size: 0.85rem;
-            word-break: break-all;
-        }
-        .file-size {
-            font-size: 0.75rem;
-            color: #6c8dab;
-        }
-        .remove-file {
-            background: #fee2e2;
-            border: none;
-            padding: 0.3rem 0.7rem;
-            border-radius: 2rem;
-            cursor: pointer;
-            color: #b91c2c;
-            font-size: 0.7rem;
-        }
-        .btn-primary, .btn-secondary, .btn-danger, .btn-success {
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 2rem;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .btn-primary {
-            background: #2c7cb6;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #1f5a82;
-        }
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #2c3e50;
-        }
-        .btn-secondary:hover {
-            background: #cbd5e1;
-        }
-        .btn-danger {
-            background: #fee2e2;
-            color: #b91c2c;
-        }
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-        .progress-bar {
-            background: #d9e5f0;
-            border-radius: 20px;
-            height: 8px;
-            margin: 1rem 0;
-            overflow: hidden;
-        }
-        .progress-fill {
-            background: linear-gradient(90deg, #2c7cb6, #4ca0d0);
-            width: 0%;
-            height: 100%;
-            transition: width 0.3s;
-        }
-        .result-link {
-            background: #eef3fc;
-            padding: 1rem;
-            border-radius: 1rem;
-            margin-top: 1rem;
-            display: none;
-        }
-        .code-badge {
-            background: #e67e22;
-            color: white;
-            padding: 0.3rem 0.8rem;
-            border-radius: 2rem;
-            font-family: monospace;
-            font-size: 0.9rem;
-            display: inline-block;
-        }
-        .existing-files {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e2edf5;
-        }
-        .file-item-existing {
-            background: #f0f6fc;
-            padding: 0.7rem 1rem;
-            border-radius: 0.8rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .row {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .row > div {
-            flex: 1;
-            min-width: 200px;
-        }
-        .toolbar {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-            align-items: center;
-            background: #f8fafc;
-            padding: 0.8rem;
-            border-radius: 1rem;
-        }
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1a2f3e;
-            color: white;
-            padding: 10px 24px;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-            z-index: 1000;
-        }
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-            .card {
-                padding: 1.5rem;
-            }
-            .row {
-                flex-direction: column;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%); padding: 2rem; color: #1b2f44; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h1 { font-size: 2rem; background: linear-gradient(120deg, #0b4b6e, #1f7ea3); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .card { background: white; border-radius: 1.5rem; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #2c5a74; }
+        input[type="text"], input[type="file"], select { width: 100%; padding: 0.8rem 1rem; border: 2px solid #cbdde9; border-radius: 1rem; font-family: 'Inter', sans-serif; font-size: 1rem; transition: 0.2s; }
+        input:focus, select:focus { outline: none; border-color: #2c7cb6; }
+        .searchable-select { position: relative; }
+        .searchable-select input { width: 100%; padding: 0.8rem 1rem; border: 2px solid #cbdde9; border-radius: 1rem; }
+        .searchable-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #cbdde9; border-top: none; border-radius: 0 0 1rem 1rem; max-height: 250px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .searchable-select-dropdown div { padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #eef3fc; }
+        .searchable-select-dropdown div:hover { background: #eef3fc; }
+        .scroll-control { text-align: center; padding: 0.5rem; background: #f8fafc; border-top: 1px solid #cbdde9; font-size: 0.75rem; cursor: pointer; }
+        .dropzone { border: 2.5px dashed #8bb4d0; border-radius: 1.5rem; background: #fafdff; padding: 2rem; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
+        .dropzone.drag-over { border-color: #1f7ea3; background: #e6f4fe; }
+        .dropzone i { font-size: 3rem; color: #5a8eb0; margin-bottom: 0.5rem; }
+        .file-list { margin-top: 1rem; max-height: 300px; overflow-y: auto; }
+        .file-item { background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+        .file-name { flex: 1; font-size: 0.85rem; word-break: break-all; }
+        .file-size { font-size: 0.75rem; color: #6c8dab; }
+        .remove-file { background: #fee2e2; border: none; padding: 0.3rem 0.7rem; border-radius: 2rem; cursor: pointer; color: #b91c2c; font-size: 0.7rem; }
+        .btn-primary, .btn-secondary, .btn-danger, .btn-success { border: none; padding: 0.8rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-primary { background: #2c7cb6; color: white; }
+        .btn-primary:hover { background: #1f5a82; }
+        .btn-secondary { background: #e2e8f0; color: #2c3e50; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-danger { background: #fee2e2; color: #b91c2c; }
+        .btn-success { background: #10b981; color: white; }
+        .progress-bar { background: #d9e5f0; border-radius: 20px; height: 8px; margin: 1rem 0; overflow: hidden; }
+        .progress-fill { background: linear-gradient(90deg, #2c7cb6, #4ca0d0); width: 0%; height: 100%; transition: width 0.3s; }
+        .result-link { background: #eef3fc; padding: 1rem; border-radius: 1rem; margin-top: 1rem; display: none; }
+        .code-badge { background: #e67e22; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-family: monospace; font-size: 0.9rem; display: inline-block; }
+        .existing-files { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2edf5; }
+        .file-item-existing { background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+        .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .row > div { flex: 1; min-width: 200px; }
+        .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; background: #f8fafc; padding: 0.8rem; border-radius: 1rem; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
+        @media (max-width: 768px) { body { padding: 1rem; } .card { padding: 1.5rem; } .row { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -293,37 +63,35 @@
 
     <div class="card">
         <div class="toolbar">
-            <button id="manageBtn" class="btn-success">
-                <i class="fas fa-edit"></i> Hantera företag & projekt
-            </button>
+            <button id="hanteraBtn" class="btn-success"><i class="fas fa-edit"></i> Hantera företag & projekt</button>
         </div>
         
         <div class="row">
             <div class="form-group">
                 <label><i class="fas fa-building"></i> Företag</label>
-                <div class="searchable-select" id="empresaSelectContainer">
-                    <input type="text" id="empresaSearchInput" placeholder="Sök eller välj företag..." autocomplete="off">
-                    <div id="empresaDropdown" class="searchable-select-dropdown"></div>
+                <div class="searchable-select" id="foretagSelectContainer">
+                    <input type="text" id="foretagSok" placeholder="Sök eller välj företag..." autocomplete="off">
+                    <div id="foretagDropdown" class="searchable-select-dropdown"></div>
                 </div>
-                <input type="hidden" id="empresaInput">
+                <input type="hidden" id="foretagValt">
             </div>
             <div class="form-group">
                 <label><i class="fas fa-project-diagram"></i> Projekt</label>
-                <div class="searchable-select" id="proyectoSelectContainer">
-                    <input type="text" id="proyectoSearchInput" placeholder="Sök eller välj projekt..." autocomplete="off" disabled>
-                    <div id="proyectoDropdown" class="searchable-select-dropdown"></div>
+                <div class="searchable-select" id="projektSelectContainer">
+                    <input type="text" id="projektSok" placeholder="Sök eller välj projekt..." autocomplete="off" disabled>
+                    <div id="projektDropdown" class="searchable-select-dropdown"></div>
                 </div>
-                <input type="hidden" id="proyectoInput">
+                <input type="hidden" id="projektValt">
             </div>
             <div class="form-group">
                 <label><i class="fas fa-tag"></i> Kod</label>
-                <input type="text" id="codeInput" placeholder="Exempel: CBB.32" autocomplete="off">
+                <input type="text" id="kodInput" placeholder="Exempel: CBB.32" autocomplete="off">
             </div>
         </div>
 
         <div class="form-group">
             <label><i class="fas fa-file-alt"></i> Beskrivning</label>
-            <input type="text" id="descriptionInput" placeholder="Vad innehåller filerna? (valfritt)">
+            <input type="text" id="beskrivningInput" placeholder="Vad innehåller filerna? (valfritt)">
         </div>
 
         <div class="form-group">
@@ -336,43 +104,37 @@
                     <i class="fas fa-folder-open"></i> Välj filer
                 </div>
             </div>
-            <input type="file" id="fileInput" multiple style="display:none">
+            <input type="file" id="filInput" multiple style="display:none">
         </div>
 
-        <div id="fileListContainer" class="file-list"></div>
+        <div id="filLista" class="file-list"></div>
 
-        <div class="progress-bar" id="progressBar" style="display: none;">
-            <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-bar" id="framstegsBar" style="display: none;">
+            <div class="progress-fill" id="framstegsFyllning"></div>
         </div>
 
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-            <button id="uploadBtn" class="btn-primary">
-                <i class="fas fa-upload"></i> Ladda upp filer
-            </button>
-            <button id="clearBtn" class="btn-secondary">
-                <i class="fas fa-trash-alt"></i> Rensa
-            </button>
+            <button id="laddaUppBtn" class="btn-primary"><i class="fas fa-upload"></i> Ladda upp filer</button>
+            <button id="rensaBtn" class="btn-secondary"><i class="fas fa-trash-alt"></i> Rensa</button>
         </div>
 
-        <div id="resultContainer" class="result-link"></div>
+        <div id="resultatContainer" class="result-link"></div>
     </div>
 
-    <div class="card" id="existingFilesCard" style="display: none;">
+    <div class="card" id="befintligaFilerKort" style="display: none;">
         <h3><i class="fas fa-history"></i> Befintliga filer för denna kod</h3>
-        <div id="existingFilesList"></div>
+        <div id="befintligaFilerLista"></div>
         <div style="margin-top: 1rem;">
-            <button id="deleteCodeBtn" class="btn-danger" style="display: none;">
-                <i class="fas fa-trash"></i> Ta bort hela koden
-            </button>
+            <button id="taBortKodBtn" class="btn-danger" style="display: none;"><i class="fas fa-trash"></i> Ta bort hela koden</button>
         </div>
     </div>
 </div>
 
-<div id="toast" class="toast">✅ Klart</div>
+<div id="toastMeddelande" class="toast">✅ Klart</div>
 
 <script src="empresas-proyectos.js"></script>
 <script>
-    // ========== FIREBASE KONFIGURATION (underlag01) ==========
+    // ========== FIREBASE KONFIGURATION ==========
     const firebaseConfig = {
         apiKey: "AIzaSyBLEjSvzn2nDPTirWF765bPpb6cEo_WnoE",
         authDomain: "underlag01.firebaseapp.com",
@@ -384,124 +146,75 @@
         measurementId: "G-TLZBHBYQBY"
     };
     
-    // Initiera Firebase
     firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    const databas = firebase.database();
     
-    // Kontrollera att databasen är tillgänglig
-    database.ref('.info/connected').on('value', (snap) => {
-        if (snap.val() === true) {
-            console.log("✅ Ansluten till Firebase Realtime Database");
-        } else {
-            console.log("❌ Ingen anslutning till Firebase Realtime Database");
-        }
-    });
+    // Initiera företags- och projektmodulen
+    initieraForetagProjekt(databas, uppdateraEfterAndring);
     
-    // Funktion för att uppdatera dropdowns efter ändringar i företag/projekt
-    async function uppdateraEfterAndring() {
-        console.log("🔄 Uppdaterar dropdowns efter ändring");
-        await actualizarDropdownEmpresas();
-        if (empresaHidden && empresaHidden.value) {
-            await actualizarProyectosPorEmpresa(empresaHidden.value);
-        }
-        await cargarArchivosExistentes();
-    }
-    
-    // Initiera företags- och projektmodulen med callback för uppdatering
-    initEmpresasProyectos(database, uppdateraEfterAndring);
-    
-    // Testa att spara testföretag om databasen är tom
-    setTimeout(async () => {
-        try {
-            const empresas = await getEmpresas();
-            if (empresas.length === 0) {
-                console.log("📝 Inga företag hittades, skapar testföretag...");
-                await agregarEmpresa("Geomira");
-                await agregarEmpresa("NCC");
-                await agregarEmpresa("Skanska");
-                await uppdateraEfterAndring();
-                console.log("✅ Testföretag skapade: Geomira, NCC, Skanska");
-            } else {
-                console.log("📊 Företag som redan finns:", empresas);
-            }
-        } catch (error) {
-            console.error("Fel vid skapande av testföretag:", error);
-        }
-    }, 2000);
-    
-    console.log("✅ Firebase initierad - underlag01");
+    console.log("✅ Firebase initierad – underlag01");
     
     // ========== CLOUDINARY KONFIGURATION ==========
-    const CLOUD_NAME = "dc1zqri3o";
-    const UPLOAD_PRESET = "ncc_nordic";
-    const FOLDER = "underlag";
-    const API_KEY = "725351489155421";
-    const API_SECRET = "22W8BZheLQtKAw7LEayY1S60Ky4";
+    const MOLN_NAMN = "dc1zqri3o";
+    const UPP_LADDNINGSPRESET = "ncc_nordic";
+    const HUVUDKATALOG = "underlag";
     
-    // Hjälpfunktion för att sanera strängar för Firebase
-    function sanitizeForFirebase(str) {
+    // Hjälpfunktioner för Firebase-sökvägar
+    function rensaForFirebase(str) {
         if (!str) return '';
         return str.replace(/\./g, '-').replace(/[#$\[\]\/]/g, '_').replace(/\s+/g, '_');
     }
     
-    // Skapa sökväg i Firebase
-    function getFirebasePath(company, project, code) {
-        return `underlag/${sanitizeForFirebase(company)}/${sanitizeForFirebase(project)}/${sanitizeForFirebase(code)}`;
+    function hamtaSokvag(foretag, projekt, kod) {
+        return `underlag/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(kod)}`;
     }
     
     // DOM-element
-    const empresaSearchInput = document.getElementById('empresaSearchInput');
-    const empresaDropdown = document.getElementById('empresaDropdown');
-    const empresaHidden = document.getElementById('empresaInput');
-    const proyectoSearchInput = document.getElementById('proyectoSearchInput');
-    const proyectoDropdown = document.getElementById('proyectoDropdown');
-    const proyectoHidden = document.getElementById('proyectoInput');
-    const codeInput = document.getElementById('codeInput');
-    const descriptionInput = document.getElementById('descriptionInput');
+    const foretagSok = document.getElementById('foretagSok');
+    const foretagDropdown = document.getElementById('foretagDropdown');
+    const foretagValt = document.getElementById('foretagValt');
+    const projektSok = document.getElementById('projektSok');
+    const projektDropdown = document.getElementById('projektDropdown');
+    const projektValt = document.getElementById('projektValt');
+    const kodInput = document.getElementById('kodInput');
+    const beskrivningInput = document.getElementById('beskrivningInput');
     const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('fileInput');
-    const fileListContainer = document.getElementById('fileListContainer');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const resultContainer = document.getElementById('resultContainer');
-    const existingFilesCard = document.getElementById('existingFilesCard');
-    const existingFilesList = document.getElementById('existingFilesList');
-    const deleteCodeBtn = document.getElementById('deleteCodeBtn');
-    const toast = document.getElementById('toast');
-    const manageBtn = document.getElementById('manageBtn');
+    const filInput = document.getElementById('filInput');
+    const filListaContainer = document.getElementById('filLista');
+    const laddaUppBtn = document.getElementById('laddaUppBtn');
+    const rensaBtn = document.getElementById('rensaBtn');
+    const framstegsBar = document.getElementById('framstegsBar');
+    const framstegsFyllning = document.getElementById('framstegsFyllning');
+    const resultatContainer = document.getElementById('resultatContainer');
+    const befintligaFilerKort = document.getElementById('befintligaFilerKort');
+    const befintligaFilerLista = document.getElementById('befintligaFilerLista');
+    const taBortKodBtn = document.getElementById('taBortKodBtn');
+    const toast = document.getElementById('toastMeddelande');
+    const hanteraBtn = document.getElementById('hanteraBtn');
     
-    let selectedFiles = [];
-    let currentData = null;
-    let empresaLimit = 10;
-    let proyectoLimit = 10;
-    let currentEmpresas = [];
-    let currentProyectos = [];
+    let valdaFiler = [];
+    let nuvarandeData = null;
+    let foretagLimit = 10;
+    let projektLimit = 10;
+    let nuvarandeForetag = [];
+    let nuvarandeProjekt = [];
     
-    // Visa toast-meddelande
-    function showToast(msg, isError) {
-        if (isError === undefined) isError = false;
-        toast.textContent = msg;
-        toast.style.backgroundColor = isError ? "#b91c2c" : "#1a2f3e";
+    function visaToast(meddelande, arFel = false) {
+        toast.textContent = meddelande;
+        toast.style.backgroundColor = arFel ? "#b91c2c" : "#1a2f3e";
         toast.style.opacity = "1";
-        setTimeout(function() {
-            toast.style.opacity = "0";
-        }, 2500);
+        setTimeout(() => toast.style.opacity = "0", 2500);
     }
     
-    // Formatera filstorlek
-    function formatSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    function formateraStorlek(byte) {
+        if (byte === 0) return '0 B';
+        const enheter = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(byte) / Math.log(1024));
+        return (byte / Math.pow(1024, i)).toFixed(2) + ' ' + enheter[i];
     }
     
-    // Hämta ikon baserat på filtyp
-    function getFileIcon(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
+    function hamtaFilIkon(filnamn) {
+        const ext = filnamn.split('.').pop().toLowerCase();
         if (ext === 'pdf') return 'fa-file-pdf';
         if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'fa-file-image';
         if (['mp4','webm','mov','avi'].includes(ext)) return 'fa-file-video';
@@ -512,519 +225,397 @@
         return 'fa-file';
     }
     
-    // Hämta ikon och färg baserat på filtyp
-    function getFileIconAndColor(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        if (ext === 'pdf') return { icon: 'fa-file-pdf', color: '#e74c3c' };
-        if (ext === 'dwg' || ext === 'dxf') return { icon: 'fa-draw-polygon', color: '#e67e22' };
-        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return { icon: 'fa-file-image', color: '#3498db' };
-        if (['mp4','webm','mov','avi'].includes(ext)) return { icon: 'fa-file-video', color: '#9b59b6' };
-        if (['zip','rar','7z'].includes(ext)) return { icon: 'fa-file-archive', color: '#f39c12' };
-        if (['doc','docx'].includes(ext)) return { icon: 'fa-file-word', color: '#2980b9' };
-        if (['xls','xlsx','csv'].includes(ext)) return { icon: 'fa-file-excel', color: '#27ae60' };
-        return { icon: 'fa-file', color: '#5a8eb0' };
+    function hamtaIkonOchFarg(filnamn) {
+        const ext = filnamn.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return { ikon: 'fa-file-pdf', farg: '#e74c3c' };
+        if (ext === 'dwg' || ext === 'dxf') return { ikon: 'fa-draw-polygon', farg: '#e67e22' };
+        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return { ikon: 'fa-file-image', farg: '#3498db' };
+        if (['mp4','webm','mov','avi'].includes(ext)) return { ikon: 'fa-file-video', farg: '#9b59b6' };
+        if (['zip','rar','7z'].includes(ext)) return { ikon: 'fa-file-archive', farg: '#f39c12' };
+        if (['doc','docx'].includes(ext)) return { ikon: 'fa-file-word', farg: '#2980b9' };
+        if (['xls','xlsx','csv'].includes(ext)) return { ikon: 'fa-file-excel', farg: '#27ae60' };
+        return { ikon: 'fa-file', farg: '#5a8eb0' };
     }
     
-    // Escapeta HTML
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    // Rendera listan över valda filer
-    function renderFileList() {
-        if (selectedFiles.length === 0) {
-            fileListContainer.innerHTML = '<div style="text-align:center; color:#9bb3c9; padding:1rem;"><i class="fas fa-inbox"></i> Inga filer valda</div>';
+    function renderaFilLista() {
+        if (valdaFiler.length === 0) {
+            filListaContainer.innerHTML = '<div style="text-align:center; color:#9bb3c9; padding:1rem;"><i class="fas fa-inbox"></i> Inga filer valda</div>';
             return;
         }
         let html = '';
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
+        for (let i = 0; i < valdaFiler.length; i++) {
+            const fil = valdaFiler[i];
             html += `
                 <div class="file-item">
-                    <i class="fas ${getFileIcon(file.name)}"></i>
-                    <span class="file-name">${escapeHtml(file.name)}</span>
-                    <span class="file-size">${formatSize(file.size)}</span>
+                    <i class="fas ${hamtaFilIkon(fil.name)}"></i>
+                    <span class="file-name">${escapeHtml(fil.name)}</span>
+                    <span class="file-size">${formateraStorlek(fil.size)}</span>
                     <button class="remove-file" data-index="${i}"><i class="fas fa-times"></i> Ta bort</button>
                 </div>
             `;
         }
-        fileListContainer.innerHTML = html;
-        
-        const removeButtons = document.querySelectorAll('.remove-file');
-        for (let i = 0; i < removeButtons.length; i++) {
-            const btn = removeButtons[i];
-            btn.addEventListener('click', function(e) {
-                const index = parseInt(btn.getAttribute('data-index'));
-                selectedFiles.splice(index, 1);
-                renderFileList();
+        filListaContainer.innerHTML = html;
+        document.querySelectorAll('.remove-file').forEach(knapp => {
+            knapp.addEventListener('click', (e) => {
+                const index = parseInt(knapp.dataset.index);
+                valdaFiler.splice(index, 1);
+                renderaFilLista();
             });
-        }
+        });
     }
     
-    // ========== DROPDOWN-FUNKTIONER ==========
-    async function actualizarDropdownEmpresas() {
-        const searchTerm = empresaSearchInput.value.toLowerCase();
-        let empresas = await filtrarEmpresas(searchTerm);
-        currentEmpresas = empresas;
-        const showCount = Math.min(empresas.length, empresaLimit);
-        let visibleEmpresas = [];
-        for (let i = 0; i < showCount; i++) {
-            visibleEmpresas.push(empresas[i]);
-        }
-        const hasMore = empresas.length > empresaLimit;
+    // ========== RULLGARDINSMENYER ==========
+    async function uppdateraForetagDropdown() {
+        const sokeTerm = foretagSok.value.toLowerCase();
+        let foretag = await filtreraForetag(sokeTerm);
+        nuvarandeForetag = foretag;
+        const visade = foretag.slice(0, foretagLimit);
+        const harFler = foretag.length > foretagLimit;
         
-        if (visibleEmpresas.length === 0 && searchTerm) {
-            empresaDropdown.innerHTML = '<div style="color:#999;">Inget företag hittades. Klicka på "Hantera" för att lägga till.</div>';
+        if (visade.length === 0 && sokeTerm) {
+            foretagDropdown.innerHTML = '<div style="color:#999;">Inget företag hittades. Klicka på "Hantera" för att lägga till.</div>';
         } else {
-            let html = '';
-            for (let i = 0; i < visibleEmpresas.length; i++) {
-                const emp = visibleEmpresas[i];
-                html += `<div data-value="${escapeHtml(emp)}">${escapeHtml(emp)}</div>`;
+            let html = visade.map(f => `<div data-value="${escapeHtml(f)}">${escapeHtml(f)}</div>`).join('');
+            if (harFler) {
+                html += `<div class="scroll-control" id="foretagVisaFler">➕ Visa fler (${foretag.length - foretagLimit} fler)</div>`;
+            } else if (foretag.length > 10) {
+                html += `<div class="scroll-control" id="foretagVisaFarre">➖ Visa färre</div>`;
             }
-            if (hasMore) {
-                html += `<div class="scroll-control" id="empresaShowMoreBtn">➕ Visa fler (${empresas.length - empresaLimit} fler)</div>`;
-            } else if (empresas.length > 10) {
-                html += `<div class="scroll-control" id="empresaShowLessBtn">➖ Visa färre</div>`;
-            }
-            empresaDropdown.innerHTML = html;
+            foretagDropdown.innerHTML = html;
         }
         
-        const dropdownItems = empresaDropdown.querySelectorAll('div[data-value]');
-        for (let i = 0; i < dropdownItems.length; i++) {
-            const div = dropdownItems[i];
-            div.addEventListener('click', async function() {
-                const value = div.getAttribute('data-value');
-                empresaSearchInput.value = value;
-                empresaHidden.value = value;
-                empresaDropdown.style.display = 'none';
-                await actualizarProyectosPorEmpresa(value);
-                await cargarArchivosExistentes();
+        foretagDropdown.querySelectorAll('div[data-value]').forEach(div => {
+            div.addEventListener('click', async () => {
+                const val = div.dataset.value;
+                foretagSok.value = val;
+                foretagValt.value = val;
+                foretagDropdown.style.display = 'none';
+                await uppdateraProjektEfterForetag(val);
+                await laddaBefintligaFiler();
             });
-        }
-        
-        const moreBtn = empresaDropdown.querySelector('#empresaShowMoreBtn');
-        if (moreBtn) {
-            moreBtn.addEventListener('click', function() {
-                empresaLimit += 20;
-                actualizarDropdownEmpresas();
-            });
-        }
-        const lessBtn = empresaDropdown.querySelector('#empresaShowLessBtn');
-        if (lessBtn) {
-            lessBtn.addEventListener('click', function() {
-                empresaLimit = 10;
-                actualizarDropdownEmpresas();
-            });
-        }
+        });
+        const flerBtn = foretagDropdown.querySelector('#foretagVisaFler');
+        if (flerBtn) flerBtn.addEventListener('click', () => { foretagLimit += 20; uppdateraForetagDropdown(); });
+        const farreBtn = foretagDropdown.querySelector('#foretagVisaFarre');
+        if (farreBtn) farreBtn.addEventListener('click', () => { foretagLimit = 10; uppdateraForetagDropdown(); });
     }
     
-    async function actualizarProyectosPorEmpresa(empresa) {
-        const proyectos = await getProyectos(empresa);
-        currentProyectos = proyectos;
-        proyectoSearchInput.disabled = false;
-        await actualizarDropdownProyectos();
+    async function uppdateraProjektEfterForetag(foretag) {
+        const projekt = await hamtaProjekt(foretag);
+        nuvarandeProjekt = projekt;
+        projektSok.disabled = false;
+        await uppdateraProjektDropdown();
     }
     
-    async function actualizarDropdownProyectos() {
-        if (!empresaHidden.value) {
-            proyectoSearchInput.disabled = true;
-            proyectoDropdown.innerHTML = '';
+    async function uppdateraProjektDropdown() {
+        if (!foretagValt.value) {
+            projektSok.disabled = true;
+            projektDropdown.innerHTML = '';
             return;
         }
-        const searchTerm = proyectoSearchInput.value.toLowerCase();
-        let proyectos = currentProyectos;
-        let filtrados = [];
-        for (let i = 0; i < proyectos.length; i++) {
-            const p = proyectos[i];
-            if (searchTerm === '') {
-                filtrados.push(p);
-            } else if (p.toLowerCase().includes(searchTerm)) {
-                filtrados.push(p);
-            }
-        }
-        const showCount = Math.min(filtrados.length, proyectoLimit);
-        let visibleProyectos = [];
-        for (let i = 0; i < showCount; i++) {
-            visibleProyectos.push(filtrados[i]);
-        }
-        const hasMore = filtrados.length > proyectoLimit;
+        const sokeTerm = projektSok.value.toLowerCase();
+        let projekt = nuvarandeProjekt;
+        const filtrerade = sokeTerm ? projekt.filter(p => p.toLowerCase().includes(sokeTerm)) : projekt;
+        const visade = filtrerade.slice(0, projektLimit);
+        const harFler = filtrerade.length > projektLimit;
         
-        if (visibleProyectos.length === 0 && searchTerm) {
-            proyectoDropdown.innerHTML = '<div style="color:#999;">Inget projekt hittades. Klicka på "Hantera" för att lägga till.</div>';
+        if (visade.length === 0 && sokeTerm) {
+            projektDropdown.innerHTML = '<div style="color:#999;">Inget projekt hittades. Klicka på "Hantera" för att lägga till.</div>';
         } else {
-            let html = '';
-            for (let i = 0; i < visibleProyectos.length; i++) {
-                const proj = visibleProyectos[i];
-                html += `<div data-value="${escapeHtml(proj)}">${escapeHtml(proj)}</div>`;
+            let html = visade.map(p => `<div data-value="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('');
+            if (harFler) {
+                html += `<div class="scroll-control" id="projektVisaFler">➕ Visa fler (${filtrerade.length - projektLimit} fler)</div>`;
+            } else if (filtrerade.length > 10) {
+                html += `<div class="scroll-control" id="projektVisaFarre">➖ Visa färre</div>`;
             }
-            if (hasMore) {
-                html += `<div class="scroll-control" id="proyectoShowMoreBtn">➕ Visa fler (${filtrados.length - proyectoLimit} fler)</div>`;
-            } else if (filtrados.length > 10) {
-                html += `<div class="scroll-control" id="proyectoShowLessBtn">➖ Visa färre</div>`;
-            }
-            proyectoDropdown.innerHTML = html;
+            projektDropdown.innerHTML = html;
         }
         
-        const dropdownItems = proyectoDropdown.querySelectorAll('div[data-value]');
-        for (let i = 0; i < dropdownItems.length; i++) {
-            const div = dropdownItems[i];
-            div.addEventListener('click', async function() {
-                const value = div.getAttribute('data-value');
-                proyectoSearchInput.value = value;
-                proyectoHidden.value = value;
-                proyectoDropdown.style.display = 'none';
-                await cargarArchivosExistentes();
+        projektDropdown.querySelectorAll('div[data-value]').forEach(div => {
+            div.addEventListener('click', async () => {
+                const val = div.dataset.value;
+                projektSok.value = val;
+                projektValt.value = val;
+                projektDropdown.style.display = 'none';
+                await laddaBefintligaFiler();
             });
-        }
-        
-        const moreBtn = proyectoDropdown.querySelector('#proyectoShowMoreBtn');
-        if (moreBtn) {
-            moreBtn.addEventListener('click', function() {
-                proyectoLimit += 20;
-                actualizarDropdownProyectos();
-            });
-        }
-        const lessBtn = proyectoDropdown.querySelector('#proyectoShowLessBtn');
-        if (lessBtn) {
-            lessBtn.addEventListener('click', function() {
-                proyectoLimit = 10;
-                actualizarDropdownProyectos();
-            });
-        }
+        });
+        const flerBtn = projektDropdown.querySelector('#projektVisaFler');
+        if (flerBtn) flerBtn.addEventListener('click', () => { projektLimit += 20; uppdateraProjektDropdown(); });
+        const farreBtn = projektDropdown.querySelector('#projektVisaFarre');
+        if (farreBtn) farreBtn.addEventListener('click', () => { projektLimit = 10; uppdateraProjektDropdown(); });
     }
     
-    function setupDropdowns() {
-        empresaSearchInput.addEventListener('focus', function() {
-            actualizarDropdownEmpresas();
-            empresaDropdown.style.display = 'block';
-        });
-        empresaSearchInput.addEventListener('input', function() {
-            actualizarDropdownEmpresas();
-            empresaDropdown.style.display = 'block';
-        });
-        proyectoSearchInput.addEventListener('focus', function() {
-            if (empresaHidden.value) {
-                actualizarDropdownProyectos();
-                proyectoDropdown.style.display = 'block';
-            }
-        });
-        proyectoSearchInput.addEventListener('input', function() {
-            if (empresaHidden.value) {
-                actualizarDropdownProyectos();
-                proyectoDropdown.style.display = 'block';
-            }
-        });
-        document.addEventListener('click', function(e) {
-            if (!empresaSearchInput.contains(e.target) && !empresaDropdown.contains(e.target)) {
-                empresaDropdown.style.display = 'none';
-            }
-            if (!proyectoSearchInput.contains(e.target) && !proyectoDropdown.contains(e.target)) {
-                proyectoDropdown.style.display = 'none';
-            }
+    function laggTillDropdownEventer() {
+        foretagSok.addEventListener('focus', () => { uppdateraForetagDropdown(); foretagDropdown.style.display = 'block'; });
+        foretagSok.addEventListener('input', () => { uppdateraForetagDropdown(); foretagDropdown.style.display = 'block'; });
+        projektSok.addEventListener('focus', () => { if (foretagValt.value) { uppdateraProjektDropdown(); projektDropdown.style.display = 'block'; } });
+        projektSok.addEventListener('input', () => { if (foretagValt.value) { uppdateraProjektDropdown(); projektDropdown.style.display = 'block'; } });
+        document.addEventListener('click', (e) => {
+            if (!foretagSok.contains(e.target) && !foretagDropdown.contains(e.target)) foretagDropdown.style.display = 'none';
+            if (!projektSok.contains(e.target) && !projektDropdown.contains(e.target)) projektDropdown.style.display = 'none';
         });
     }
     
-    // ========== CLOUDINARY- OCH FIREBASE-FUNKTIONER ==========
-    async function uploadFileToCloudinary(file, company, project, code) {
+    // ========== CLOUDINARY OCH FIREBASE ==========
+    async function laddaUppFilTillCloudinary(fil, foretag, projekt, kod) {
         const formData = new FormData();
-        const timestamp = Date.now();
-        const safeName = file.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
-        const publicId = FOLDER + '/' + sanitizeForFirebase(company) + '/' + sanitizeForFirebase(project) + '/' + sanitizeForFirebase(code) + '/' + timestamp + '_' + safeName;
-        formData.append('file', file);
-        formData.append('upload_preset', UPLOAD_PRESET);
-        formData.append('folder', FOLDER + '/' + sanitizeForFirebase(company) + '/' + sanitizeForFirebase(project) + '/' + sanitizeForFirebase(code));
-        formData.append('public_id', publicId);
+        const tid = Date.now();
+        const namn = fil.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
+        const offentligtId = `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(kod)}/${tid}_${namn}`;
+        formData.append('file', fil);
+        formData.append('upload_preset', UPP_LADDNINGSPRESET);
+        formData.append('folder', `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(kod)}`);
+        formData.append('public_id', offentligtId);
         formData.append('resource_type', 'auto');
-        
         try {
-            const res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/auto/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || 'Uppladdning misslyckades');
-            let downloadUrl = data.secure_url;
-            if (downloadUrl.includes('?')) {
-                downloadUrl = downloadUrl + '&fl_attachment';
-            } else {
-                downloadUrl = downloadUrl + '?fl_attachment';
-            }
+            const svar = await fetch(`https://api.cloudinary.com/v1_1/${MOLN_NAMN}/auto/upload`, { method: 'POST', body: formData });
+            const data = await svar.json();
+            if (!svar.ok) throw new Error(data.error?.message || 'Uppladdning misslyckades');
+            let nedladdningsUrl = data.secure_url;
+            nedladdningsUrl += nedladdningsUrl.includes('?') ? '&fl_attachment' : '?fl_attachment';
             return {
                 success: true,
-                publicId: data.public_id,
-                filename: file.name,
-                size: file.size,
-                date: new Date().toISOString(),
-                previewUrl: data.secure_url,
-                downloadUrl: downloadUrl,
-                type: file.name.split('.').pop().toLowerCase()
+                offentligtId: data.public_id,
+                filnamn: fil.name,
+                storlek: fil.size,
+                datum: new Date().toISOString(),
+                visningsUrl: data.secure_url,
+                nedladdningsUrl: nedladdningsUrl,
+                typ: fil.name.split('.').pop().toLowerCase()
             };
-        } catch (err) {
-            console.error(err);
-            return { success: false, name: file.name, error: err.message };
+        } catch (fel) {
+            console.error(fel);
+            return { success: false, namn: fil.name, fel: fel.message };
         }
     }
     
-    async function saveToFirebase(company, project, code, description, files) {
-        const path = getFirebasePath(company, project, code);
-        const codeRef = database.ref(path);
-        const snapshot = await codeRef.once('value');
-        let existingData = snapshot.val() || {};
-        const filesObj = {};
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const fileId = Date.now() + '_' + i + '_' + file.filename.replace(/[^a-zA-Z0-9]/g, '_');
-            filesObj[fileId] = {
-                filename: file.filename,
-                size: file.size,
-                date: file.date,
-                previewUrl: file.previewUrl,
-                downloadUrl: file.downloadUrl,
-                type: file.type
+    async function sparaTillFirebase(foretag, projekt, kod, beskrivning, filer) {
+        const sökväg = hamtaSokvag(foretag, projekt, kod);
+        const referens = databas.ref(sökväg);
+        const snapshot = await referens.once('value');
+        let befintligData = snapshot.val() || {};
+        const filerObjekt = {};
+        for (let i = 0; i < filer.length; i++) {
+            const fil = filer[i];
+            const filId = `${Date.now()}_${i}_${fil.filnamn.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            filerObjekt[filId] = {
+                filnamn: fil.filnamn,
+                storlek: fil.storlek,
+                datum: fil.datum,
+                visningsUrl: fil.visningsUrl,
+                nedladdningsUrl: fil.nedladdningsUrl,
+                typ: fil.typ
             };
         }
-        const existingFiles = existingData.files || {};
-        const allFiles = {};
-        // Kopiera befintliga filer
-        for (const key in existingFiles) {
-            allFiles[key] = existingFiles[key];
-        }
-        // Lägg till nya filer
-        for (const key in filesObj) {
-            allFiles[key] = filesObj[key];
-        }
-        const dataToSave = {
-            description: description || existingData.description || '',
-            company: company,
-            project: project,
-            code: code,
-            createdAt: existingData.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            files: allFiles
-        };
-        await codeRef.set(dataToSave);
+        const befintligaFiler = befintligData.filer || {};
+        const allaFiler = { ...befintligaFiler, ...filerObjekt };
+        await referens.set({
+            beskrivning: beskrivning || befintligData.beskrivning || '',
+            foretag: foretag,
+            projekt: projekt,
+            kod: kod,
+            skapad: befintligData.skapad || new Date().toISOString(),
+            uppdaterad: new Date().toISOString(),
+            filer: allaFiler
+        });
         return true;
     }
     
-    async function loadExistingData(company, project, code) {
-        if (!company || !project || !code) return null;
+    async function laddaBefintligData(foretag, projekt, kod) {
+        if (!foretag || !projekt || !kod) return null;
         try {
-            const path = getFirebasePath(company, project, code);
-            const snapshot = await database.ref(path).once('value');
+            const sökväg = hamtaSokvag(foretag, projekt, kod);
+            const snapshot = await databas.ref(sökväg).once('value');
             return snapshot.val();
-        } catch (error) {
-            console.error('Fel vid laddning:', error);
+        } catch (fel) {
+            console.error('Fel vid laddning:', fel);
             return null;
         }
     }
     
-    async function cargarArchivosExistentes() {
-        const company = empresaHidden.value;
-        const project = proyectoHidden.value;
-        const code = codeInput.value.trim().toUpperCase();
-        if (!company || !project || !code) {
-            existingFilesCard.style.display = 'none';
+    async function laddaBefintligaFiler() {
+        const foretag = foretagValt.value;
+        const projekt = projektValt.value;
+        const kod = kodInput.value.trim().toUpperCase();
+        if (!foretag || !projekt || !kod) {
+            befintligaFilerKort.style.display = 'none';
             return;
         }
-        currentData = await loadExistingData(company, project, code);
-        if (!currentData || !currentData.files || Object.keys(currentData.files).length === 0) {
-            existingFilesCard.style.display = 'none';
+        nuvarandeData = await laddaBefintligData(foretag, projekt, kod);
+        if (!nuvarandeData || !nuvarandeData.filer || Object.keys(nuvarandeData.filer).length === 0) {
+            befintligaFilerKort.style.display = 'none';
             return;
         }
-        existingFilesCard.style.display = 'block';
+        befintligaFilerKort.style.display = 'block';
         let html = '';
-        if (currentData.description) {
-            html += '<p><strong>Beskrivning:</strong> ' + escapeHtml(currentData.description) + '</p>';
-        }
-        html += '<div style="margin-top: 1rem;">';
-        const fileEntries = Object.entries(currentData.files);
-        for (let i = 0; i < fileEntries.length; i++) {
-            const fileId = fileEntries[i][0];
-            const file = fileEntries[i][1];
-            const iconInfo = getFileIconAndColor(file.filename);
+        if (nuvarandeData.beskrivning) html += `<p><strong>Beskrivning:</strong> ${escapeHtml(nuvarandeData.beskrivning)}</p>`;
+        html += `<div style="margin-top: 1rem;">`;
+        for (const [filId, fil] of Object.entries(nuvarandeData.filer)) {
+            const { ikon, farg } = hamtaIkonOchFarg(fil.filnamn);
             html += `
-                <div class="file-item-existing" data-fileid="${fileId}">
-                    <i class="fas ${iconInfo.icon}" style="color:${iconInfo.color}; font-size:1.2rem;"></i>
-                    <span class="file-name">${escapeHtml(file.filename)}</span>
-                    <span class="file-size">${formatSize(file.size)}</span>
+                <div class="file-item-existing" data-filid="${filId}">
+                    <i class="fas ${ikon}" style="color:${farg}; font-size:1.2rem;"></i>
+                    <span class="file-name">${escapeHtml(fil.filnamn)}</span>
+                    <span class="file-size">${formateraStorlek(fil.storlek)}</span>
                     <div style="display: flex; gap: 0.3rem;">
-                        <button class="btn-secondary" style="padding: 0.2rem 0.6rem; font-size:0.7rem;" onclick="window.open('${file.previewUrl}', '_blank')">
-                            <i class="fas fa-eye"></i> Visa
-                        </button>
-                        <button class="btn-secondary delete-single-file" data-fileid="${fileId}" style="background:#fee2e2; color:#b91c2c;">
-                            <i class="fas fa-trash"></i> Ta bort
-                        </button>
+                        <button class="btn-secondary" style="padding: 0.2rem 0.6rem; font-size:0.7rem;" onclick="window.open('${fil.visningsUrl}', '_blank')"><i class="fas fa-eye"></i> Visa</button>
+                        <button class="btn-secondary taBortEnskildFil" data-filid="${filId}" style="background:#fee2e2; color:#b91c2c;"><i class="fas fa-trash"></i> Ta bort</button>
                     </div>
                 </div>
             `;
         }
-        html += '</div>';
-        existingFilesList.innerHTML = html;
-        deleteCodeBtn.style.display = 'inline-flex';
+        html += `</div>`;
+        befintligaFilerLista.innerHTML = html;
+        taBortKodBtn.style.display = 'inline-flex';
         
-        const deleteButtons = document.querySelectorAll('.delete-single-file');
-        for (let i = 0; i < deleteButtons.length; i++) {
-            const btn = deleteButtons[i];
-            btn.addEventListener('click', async function(e) {
-                const fileId = btn.getAttribute('data-fileid');
+        document.querySelectorAll('.taBortEnskildFil').forEach(knapp => {
+            knapp.addEventListener('click', async () => {
+                const filId = knapp.dataset.filid;
                 if (confirm('Ta bort denna fil?')) {
-                    await deleteSingleFile(empresaHidden.value, proyectoHidden.value, codeInput.value.trim().toUpperCase(), fileId);
+                    await taBortEnskildFil(foretagValt.value, projektValt.value, kodInput.value.trim().toUpperCase(), filId);
                 }
             });
-        }
+        });
     }
     
-    async function deleteSingleFile(company, project, code, fileId) {
-        const path = getFirebasePath(company, project, code);
-        await database.ref(path + '/files/' + fileId).remove();
-        showToast('✅ Fil borttagen');
-        await cargarArchivosExistentes();
+    async function taBortEnskildFil(foretag, projekt, kod, filId) {
+        const sökväg = hamtaSokvag(foretag, projekt, kod);
+        await databas.ref(`${sökväg}/filer/${filId}`).remove();
+        visaToast('✅ Fil borttagen');
+        await laddaBefintligaFiler();
     }
     
-    async function deleteEntireCode(company, project, code) {
-        if (!confirm('Är du säker på att du vill ta bort ALLA filer för koden ' + code + '?')) return;
-        const path = getFirebasePath(company, project, code);
-        await database.ref(path).remove();
-        showToast('✅ Kod och alla filer borttagna');
-        existingFilesCard.style.display = 'none';
-        currentData = null;
+    async function taBortHelaKoden(foretag, projekt, kod) {
+        if (!confirm(`Är du säker på att du vill ta bort ALLA filer för koden ${kod}?`)) return;
+        const sökväg = hamtaSokvag(foretag, projekt, kod);
+        await databas.ref(sökväg).remove();
+        visaToast('✅ Kod och alla filer borttagna');
+        befintligaFilerKort.style.display = 'none';
+        nuvarandeData = null;
     }
     
-    deleteCodeBtn.addEventListener('click', async function() {
-        await deleteEntireCode(empresaHidden.value, proyectoHidden.value, codeInput.value.trim().toUpperCase());
+    taBortKodBtn.addEventListener('click', async () => {
+        await taBortHelaKoden(foretagValt.value, projektValt.value, kodInput.value.trim().toUpperCase());
     });
     
-    async function uploadFiles() {
-        const company = empresaHidden.value;
-        const project = proyectoHidden.value;
-        const code = codeInput.value.trim().toUpperCase();
-        if (!company) { showToast('❌ Välj företag', true); return; }
-        if (!project) { showToast('❌ Välj projekt', true); return; }
-        if (!code) { showToast('❌ Ange kod (t.ex. CBB.32)', true); return; }
-        if (selectedFiles.length === 0) { showToast('❌ Välj minst en fil', true); return; }
+    async function laddaUppFiler() {
+        const foretag = foretagValt.value;
+        const projekt = projektValt.value;
+        const kod = kodInput.value.trim().toUpperCase();
+        if (!foretag) { visaToast('❌ Välj företag', true); return; }
+        if (!projekt) { visaToast('❌ Välj projekt', true); return; }
+        if (!kod) { visaToast('❌ Ange kod (t.ex. CBB.32)', true); return; }
+        if (valdaFiler.length === 0) { visaToast('❌ Välj minst en fil', true); return; }
         
-        uploadBtn.disabled = true;
-        progressBar.style.display = 'block';
-        progressFill.style.width = '0%';
-        let completed = 0;
-        const total = selectedFiles.length;
-        const uploadedFiles = [];
-        showToast('📤 Laddar upp ' + total + ' fil(er)...');
+        laddaUppBtn.disabled = true;
+        framstegsBar.style.display = 'block';
+        framstegsFyllning.style.width = '0%';
+        let klara = 0;
+        const total = valdaFiler.length;
+        const uppladdadeFiler = [];
+        visaToast(`📤 Laddar upp ${total} fil(er)...`);
         
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const result = await uploadFileToCloudinary(selectedFiles[i], company, project, code);
-            if (result.success) {
-                uploadedFiles.push(result);
+        for (let i = 0; i < valdaFiler.length; i++) {
+            const resultat = await laddaUppFilTillCloudinary(valdaFiler[i], foretag, projekt, kod);
+            if (resultat.success) {
+                uppladdadeFiler.push(resultat);
             } else {
-                showToast('❌ Misslyckades: ' + result.name, true);
+                visaToast(`❌ Misslyckades: ${resultat.namn}`, true);
             }
-            completed++;
-            progressFill.style.width = (completed / total) * 100 + '%';
+            klara++;
+            framstegsFyllning.style.width = `${(klara/total)*100}%`;
         }
         
-        if (uploadedFiles.length > 0) {
-            const description = descriptionInput.value.trim();
-            await saveToFirebase(company, project, code, description, uploadedFiles);
+        if (uppladdadeFiler.length > 0) {
+            const beskrivning = beskrivningInput.value.trim();
+            await sparaTillFirebase(foretag, projekt, kod, beskrivning, uppladdadeFiler);
             
-            let baseUrl = window.location.href;
-            if (baseUrl.includes('index.html')) {
-                baseUrl = baseUrl.replace('index.html', '');
-            }
-            if (!baseUrl.endsWith('/')) {
-                baseUrl = baseUrl + '/';
-            }
-            const ENLACE = baseUrl + 'viewer.html?company=' + encodeURIComponent(company) + '&project=' + encodeURIComponent(project) + '&code=' + encodeURIComponent(code);
+            let basUrl = window.location.href;
+            if (basUrl.includes('index.html')) basUrl = basUrl.replace('index.html', '');
+            if (!basUrl.endsWith('/')) basUrl += '/';
+            const LANK = `${basUrl}viewer.html?company=${encodeURIComponent(foretag)}&project=${encodeURIComponent(projekt)}&code=${encodeURIComponent(kod)}`;
             
-            resultContainer.style.display = 'block';
-            resultContainer.innerHTML = `
+            resultatContainer.style.display = 'block';
+            resultatContainer.innerHTML = `
                 <h4><i class="fas fa-check-circle" style="color:#10b981;"></i> Filer uppladdade!</h4>
-                <p>📁 ${uploadedFiles.length} fil(er) uppladdade</p>
-                <p>🏢 Företag: <strong>${escapeHtml(company)}</strong> | 📂 Projekt: <strong>${escapeHtml(project)}</strong> | 🏷️ Kod: <strong class="code-badge">${escapeHtml(code)}</strong></p>
+                <p>📁 ${uppladdadeFiler.length} fil(er) uppladdade</p>
+                <p>🏢 Företag: <strong>${escapeHtml(foretag)}</strong> | 📂 Projekt: <strong>${escapeHtml(projekt)}</strong> | 🏷️ Kod: <strong class="code-badge">${escapeHtml(kod)}</strong></p>
                 <hr>
                 <p><strong>🔗 LÄNK ATT KLISTRA IN I EXCEL/PDF:</strong></p>
-                <input type="text" id="linkInput" value="${ENLACE}" readonly style="width:100%; padding:0.8rem; border-radius:0.8rem; border:2px solid #cbdde9; margin:0.5rem 0; font-family: monospace;">
-                <button id="copyLinkBtn" class="btn-primary"><i class="fas fa-copy"></i> Kopiera länk</button>
-                <a href="${ENLACE}" target="_blank" class="btn-secondary" style="text-decoration:none;"> Testa länk</a>
+                <input type="text" id="lankInput" value="${LANK}" readonly style="width:100%; padding:0.8rem; border-radius:0.8rem; border:2px solid #cbdde9; margin:0.5rem 0; font-family: monospace;">
+                <button id="kopieraLankBtn" class="btn-primary"><i class="fas fa-copy"></i> Kopiera länk</button>
+                <a href="${LANK}" target="_blank" class="btn-secondary" style="text-decoration:none;"> Testa länk</a>
             `;
-            const copyBtn = document.getElementById('copyLinkBtn');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', function() {
-                    const linkInput = document.getElementById('linkInput');
-                    linkInput.select();
-                    document.execCommand('copy');
-                    showToast('📋 Länk kopierad');
-                });
-            }
-            await cargarArchivosExistentes();
-            showToast('✅ ' + uploadedFiles.length + ' fil(er) uppladdade');
+            const kopieraBtn = document.getElementById('kopieraLankBtn');
+            if (kopieraBtn) kopieraBtn.addEventListener('click', () => {
+                document.getElementById('lankInput').select();
+                document.execCommand('copy');
+                visaToast('📋 Länk kopierad');
+            });
+            await laddaBefintligaFiler();
+            visaToast(`✅ ${uppladdadeFiler.length} fil(er) uppladdade`);
         }
-        selectedFiles = [];
-        renderFileList();
-        uploadBtn.disabled = false;
-        setTimeout(function() {
-            progressBar.style.display = 'none';
-            progressFill.style.width = '0%';
+        valdaFiler = [];
+        renderaFilLista();
+        laddaUppBtn.disabled = false;
+        setTimeout(() => {
+            framstegsBar.style.display = 'none';
+            framstegsFyllning.style.width = '0%';
         }, 1000);
     }
     
-    function clearAll() {
-        selectedFiles = [];
-        renderFileList();
-        fileInput.value = '';
-        showToast('🧹 Rensat');
+    function rensaAllt() {
+        valdaFiler = [];
+        renderaFilLista();
+        filInput.value = '';
+        visaToast('🧹 Rensat');
     }
     
-    manageBtn.addEventListener('click', function() {
-        mostrarModalGestion(uppdateraEfterAndring);
+    hanteraBtn.addEventListener('click', () => {
+        visaModalHantering(uppdateraEfterAndring);
     });
     
-    let debounceTimer;
-    codeInput.addEventListener('input', function() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function() {
-            cargarArchivosExistentes();
-        }, 500);
+    async function uppdateraEfterAndring() {
+        console.log("🔄 Uppdaterar rullgardinsmenyer efter ändring");
+        await uppdateraForetagDropdown();
+        if (foretagValt.value) await uppdateraProjektEfterForetag(foretagValt.value);
+        await laddaBefintligaFiler();
+    }
+    
+    let dröjsmålTimer;
+    kodInput.addEventListener('input', () => {
+        clearTimeout(dröjsmålTimer);
+        dröjsmålTimer = setTimeout(() => laddaBefintligaFiler(), 500);
     });
     
-    dropzone.addEventListener('dragover', function(e) {
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
         e.preventDefault();
-        dropzone.classList.add('drag-over');
-    });
-    dropzone.addEventListener('dragleave', function() {
         dropzone.classList.remove('drag-over');
+        const filer = Array.from(e.dataTransfer.files);
+        valdaFiler.push(...filer);
+        renderaFilLista();
     });
-    dropzone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        dropzone.classList.remove('drag-over');
-        const files = Array.from(e.dataTransfer.files);
-        for (let i = 0; i < files.length; i++) {
-            selectedFiles.push(files[i]);
-        }
-        renderFileList();
+    dropzone.addEventListener('click', () => filInput.click());
+    filInput.addEventListener('change', e => {
+        const filer = Array.from(e.target.files);
+        valdaFiler.push(...filer);
+        renderaFilLista();
+        filInput.value = '';
     });
-    dropzone.addEventListener('click', function() {
-        fileInput.click();
-    });
-    fileInput.addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
-        for (let i = 0; i < files.length; i++) {
-            selectedFiles.push(files[i]);
-        }
-        renderFileList();
-        fileInput.value = '';
-    });
-    uploadBtn.addEventListener('click', uploadFiles);
-    clearBtn.addEventListener('click', clearAll);
+    laddaUppBtn.addEventListener('click', laddaUppFiler);
+    rensaBtn.addEventListener('click', rensaAllt);
     
-    setupDropdowns();
-    actualizarDropdownEmpresas();
-    renderFileList();
+    laggTillDropdownEventer();
+    uppdateraForetagDropdown();
+    renderaFilLista();
     console.log("✅ Admin redo – Firebase ansluten");
 </script>
 </body>
