@@ -10,206 +10,34 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%);
-            padding: 2rem;
-            color: #1b2f44;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            background: white;
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-        .header h1 {
-            font-size: 1.5rem;
-            color: #2c7cb6;
-            margin-bottom: 0.5rem;
-        }
-        .info-badge {
-            background: #eef3fc;
-            padding: 0.5rem 1rem;
-            border-radius: 1rem;
-            display: inline-block;
-            margin-top: 0.5rem;
-        }
-        .code-badge {
-            background: #e67e22;
-            color: white;
-            padding: 0.3rem 0.8rem;
-            border-radius: 2rem;
-            font-family: monospace;
-            font-size: 0.9rem;
-        }
-        .description {
-            color: #4a6f8f;
-            margin-top: 0.8rem;
-            padding: 0.5rem;
-            background: #f0f6fc;
-            border-radius: 0.8rem;
-        }
-        .files-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
-        }
-        .file-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.2rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid #e2edf5;
-        }
-        .file-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-        .file-icon {
-            font-size: 2rem;
-            margin-bottom: 0.8rem;
-        }
-        .file-name {
-            font-weight: 600;
-            font-size: 0.9rem;
-            word-break: break-word;
-            margin-bottom: 0.5rem;
-        }
-        .file-meta {
-            font-size: 0.75rem;
-            color: #6c8dab;
-            margin-bottom: 1rem;
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .file-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .btn {
-            padding: 0.4rem 1rem;
-            border-radius: 2rem;
-            border: none;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: 0.1s;
-        }
-        .btn-view {
-            background: #eef3fc;
-            color: #2c7cb6;
-        }
-        .btn-download {
-            background: #eef3fc;
-            color: #10b981;
-        }
-        .loading, .error, .no-files {
-            text-align: center;
-            padding: 3rem;
-            background: white;
-            border-radius: 1.5rem;
-        }
-        .loading i, .error i, .no-files i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        .loading i {
-            color: #5a8eb0;
-        }
-        .error i {
-            color: #e74c3c;
-        }
-        .no-files i {
-            color: #f39c12;
-        }
-        .footer {
-            margin-top: 2rem;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #6c8dab;
-            border-top: 1px solid #cbdde9;
-            padding-top: 1.5rem;
-        }
-        .footer a {
-            color: #2c7cb6;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1a2f3e;
-            color: white;
-            padding: 10px 24px;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-            z-index: 1000;
-        }
-        .modal-preview {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-        }
-        .modal-content-preview {
-            background: white;
-            border-radius: 1rem;
-            max-width: 90%;
-            max-height: 90%;
-            overflow: auto;
-            position: relative;
-            padding: 1rem;
-        }
-        .modal-content-preview iframe,
-        .modal-content-preview img,
-        .modal-content-preview video {
-            max-width: 100%;
-            max-height: 80vh;
-        }
-        .close-modal {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 2rem;
-            cursor: pointer;
-            color: #333;
-        }
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-            .files-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(145deg, #eef3fc 0%, #e0e9f2 100%); padding: 2rem; color: #1b2f44; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .header h1 { font-size: 1.5rem; color: #2c7cb6; margin-bottom: 0.5rem; }
+        .info-badge { background: #eef3fc; padding: 0.5rem 1rem; border-radius: 1rem; display: inline-block; margin-top: 0.5rem; }
+        .code-badge { background: #e67e22; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-family: monospace; font-size: 0.9rem; }
+        .description { color: #4a6f8f; margin-top: 0.8rem; padding: 0.5rem; background: #f0f6fc; border-radius: 0.8rem; }
+        .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; }
+        .file-card { background: white; border-radius: 1rem; padding: 1.2rem; transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #e2edf5; }
+        .file-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .file-icon { font-size: 2rem; margin-bottom: 0.8rem; }
+        .file-name { font-weight: 600; font-size: 0.9rem; word-break: break-word; margin-bottom: 0.5rem; }
+        .file-meta { font-size: 0.75rem; color: #6c8dab; margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+        .file-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn { padding: 0.4rem 1rem; border-radius: 2rem; border: none; cursor: pointer; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; transition: 0.1s; }
+        .btn-view { background: #eef3fc; color: #2c7cb6; }
+        .btn-download { background: #eef3fc; color: #10b981; }
+        .loading, .error, .no-files { text-align: center; padding: 3rem; background: white; border-radius: 1.5rem; }
+        .loading i, .error i, .no-files i { font-size: 3rem; margin-bottom: 1rem; }
+        .footer { margin-top: 2rem; text-align: center; font-size: 0.8rem; color: #6c8dab; border-top: 1px solid #cbdde9; padding-top: 1.5rem; }
+        .footer a { color: #2c7cb6; text-decoration: none; font-weight: 500; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
+        .modal-preview { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content-preview { background: white; border-radius: 1rem; max-width: 90%; max-height: 90%; overflow: auto; position: relative; padding: 1rem; }
+        .modal-content-preview iframe, .modal-content-preview img, .modal-content-preview video { max-width: 100%; max-height: 80vh; }
+        .close-modal { position: absolute; top: 10px; right: 20px; font-size: 2rem; cursor: pointer; color: #333; }
+        @media (max-width: 768px) { body { padding: 1rem; } .files-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -233,7 +61,7 @@
 
 <div id="previewModal" class="modal-preview">
     <div class="modal-content-preview">
-        <span class="close-modal" onclick="closePreviewModal()">&times;</span>
+        <span class="close-modal" onclick="stangForhandsgranskning()">&times;</span>
         <div id="previewContent"></div>
     </div>
 </div>
@@ -241,7 +69,7 @@
 <div id="toast" class="toast">✅ Klart</div>
 
 <script>
-    // ========== FIREBASE KONFIGURATION (underlag01) ==========
+    // ========== FIREBASE KONFIGURATION ==========
     const firebaseConfig = {
         apiKey: "AIzaSyBLEjSvzn2nDPTirWF765bPpb6cEo_WnoE",
         authDomain: "underlag01.firebaseapp.com",
@@ -253,169 +81,144 @@
         measurementId: "G-TLZBHBYQBY"
     };
     
-    // Initiera Firebase
     firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    console.log("✅ Firebase initierad - underlag01");
+    const databas = firebase.database();
+    console.log("✅ Firebase initierad – underlag01");
     
-    // Hämta parametrar från URL
     const urlParams = new URLSearchParams(window.location.search);
-    const company = urlParams.get('company');
-    const project = urlParams.get('project');
-    const originalCode = urlParams.get('code');
+    const foretag = urlParams.get('company');
+    const projekt = urlParams.get('project');
+    const originalKod = urlParams.get('code');
     
-    // Sanera strängar för Firebase
-    function sanitizeForFirebase(str) {
+    function rensaForFirebase(str) {
         if (!str) return '';
         return str.replace(/\./g, '-').replace(/[#$\[\]\/]/g, '_').replace(/\s+/g, '_');
     }
     
-    // Skapa sökväg i Firebase
-    function getFirebasePath() {
-        return 'underlag/' + sanitizeForFirebase(company) + '/' + sanitizeForFirebase(project) + '/' + sanitizeForFirebase(originalCode);
+    function hamtaSokvag() {
+        return `underlag/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(originalKod)}`;
     }
     
-    // Visa toast-meddelande
-    function showToast(msg, isError) {
-        if (isError === undefined) isError = false;
+    function visaToast(msg, arFel = false) {
         const toast = document.getElementById('toast');
         toast.textContent = msg;
-        toast.style.backgroundColor = isError ? "#b91c2c" : "#1a2f3e";
+        toast.style.backgroundColor = arFel ? "#b91c2c" : "#1a2f3e";
         toast.style.opacity = "1";
-        setTimeout(function() {
-            toast.style.opacity = "0";
-        }, 2500);
+        setTimeout(() => toast.style.opacity = "0", 2500);
     }
     
-    // Formatera filstorlek
-    function formatSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    function formateraStorlek(byte) {
+        if (byte === 0) return '0 B';
+        const enheter = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(byte) / Math.log(1024));
+        return (byte / Math.pow(1024, i)).toFixed(2) + ' ' + enheter[i];
     }
     
-    // Hämta ikon och färg baserat på filtyp
-    function getFileIconAndColor(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        if (ext === 'pdf') return { icon: 'fa-file-pdf', color: '#e74c3c' };
-        if (ext === 'dwg' || ext === 'dxf') return { icon: 'fa-draw-polygon', color: '#e67e22' };
-        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return { icon: 'fa-file-image', color: '#3498db' };
-        if (['mp4','webm','mov','avi'].includes(ext)) return { icon: 'fa-file-video', color: '#9b59b6' };
-        if (['zip','rar','7z'].includes(ext)) return { icon: 'fa-file-archive', color: '#f39c12' };
-        if (['doc','docx'].includes(ext)) return { icon: 'fa-file-word', color: '#2980b9' };
-        if (['xls','xlsx','csv'].includes(ext)) return { icon: 'fa-file-excel', color: '#27ae60' };
-        return { icon: 'fa-file', color: '#5a8eb0' };
+    function hamtaIkonOchFarg(filnamn) {
+        const ext = filnamn.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return { ikon: 'fa-file-pdf', farg: '#e74c3c' };
+        if (ext === 'dwg' || ext === 'dxf') return { ikon: 'fa-draw-polygon', farg: '#e67e22' };
+        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return { ikon: 'fa-file-image', farg: '#3498db' };
+        if (['mp4','webm','mov','avi'].includes(ext)) return { ikon: 'fa-file-video', farg: '#9b59b6' };
+        if (['zip','rar','7z'].includes(ext)) return { ikon: 'fa-file-archive', farg: '#f39c12' };
+        if (['doc','docx'].includes(ext)) return { ikon: 'fa-file-word', farg: '#2980b9' };
+        if (['xls','xlsx','csv'].includes(ext)) return { ikon: 'fa-file-excel', farg: '#27ae60' };
+        return { ikon: 'fa-file', farg: '#5a8eb0' };
     }
     
-    // Escapeta HTML
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    // Stäng förhandsgranskningsmodalen
-    function closePreviewModal() {
+    function stangForhandsgranskning() {
         document.getElementById('previewModal').style.display = 'none';
         document.getElementById('previewContent').innerHTML = '';
     }
     
-    // Ladda ner fil med originalnamn
-    async function downloadFile(url, originalFilename) {
+    async function laddaNerFil(ursprungligUrl, ursprungligtNamn) {
         try {
-            showToast('⬇️ Laddar ner ' + originalFilename + ' ...');
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Nedladdning misslyckades');
-            const blob = await response.blob();
+            visaToast(`⬇️ Laddar ner ${ursprungligtNamn} ...`);
+            const svar = await fetch(ursprungligUrl);
+            if (!svar.ok) throw new Error('Nedladdning misslyckades');
+            const blob = await svar.blob();
             const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = originalFilename;
+            a.download = ursprungligtNamn;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(blobUrl);
-            showToast('✅ ' + originalFilename + ' nedladdad');
-        } catch (error) {
-            console.error(error);
-            showToast('❌ Kunde inte ladda ner filen', true);
+            visaToast(`✅ ${ursprungligtNamn} nedladdad`);
+        } catch (fel) {
+            console.error(fel);
+            visaToast('❌ Kunde inte ladda ner filen', true);
         }
     }
     
-    // Visa fil i modal (för PDF, bilder, video)
-    function viewFileInModal(url, filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-        const previewDiv = document.getElementById('previewContent');
-        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
-        const videoExts = ['mp4', 'webm', 'mov', 'avi'];
+    function visaFilIModal(url, filnamn) {
+        const ext = filnamn.split('.').pop().toLowerCase();
+        const forhandsgranskning = document.getElementById('previewContent');
+        const bildExt = ['jpg','jpeg','png','gif','webp','bmp','svg'];
+        const videoExt = ['mp4','webm','mov','avi'];
         
         if (ext === 'pdf') {
-            previewDiv.innerHTML = '<iframe src="' + url + '" style="width:100%; height:80vh;" frameborder="0"></iframe>';
-        } else if (imageExts.includes(ext)) {
-            previewDiv.innerHTML = '<img src="' + url + '" alt="' + filename + '" style="max-width:100%; max-height:80vh;">';
-        } else if (videoExts.includes(ext)) {
-            previewDiv.innerHTML = '<video controls style="max-width:100%; max-height:80vh;"><source src="' + url + '" type="video/' + ext + '">Din webbläsare stödjer inte videouppspelning.</video>';
+            forhandsgranskning.innerHTML = `<iframe src="${url}" style="width:100%; height:80vh;" frameborder="0"></iframe>`;
+        } else if (bildExt.includes(ext)) {
+            forhandsgranskning.innerHTML = `<img src="${url}" alt="${filnamn}" style="max-width:100%; max-height:80vh;">`;
+        } else if (videoExt.includes(ext)) {
+            forhandsgranskning.innerHTML = `<video controls style="max-width:100%; max-height:80vh;"><source src="${url}" type="video/${ext}">Din webbläsare stödjer inte videouppspelning.</video>`;
         } else {
-            downloadFile(url, filename);
+            laddaNerFil(url, filnamn);
             return;
         }
         document.getElementById('previewModal').style.display = 'flex';
     }
     
-    // Ladda data från Firebase
-    async function loadFromFirebase() {
+    async function laddaFranFirebase() {
         try {
-            const snapshot = await database.ref(getFirebasePath()).once('value');
+            const snapshot = await databas.ref(hamtaSokvag()).once('value');
             return snapshot.val();
-        } catch (error) {
-            console.error('Fel:', error);
+        } catch (fel) {
+            console.error('Fel:', fel);
             return null;
         }
     }
     
-    // Initiera sidan
     async function init() {
-        if (!company || !project || !originalCode) {
+        if (!foretag || !projekt || !originalKod) {
             document.getElementById('content').innerHTML = '<div class="error"><i class="fas fa-exclamation-triangle"></i><p>Felaktig länk. Länken ska innehålla: company, project och code</p><p>Exempel: viewer.html?company=Geomira&project=Kaj8&code=CBB.32</p></div>';
             document.getElementById('infoDisplay').innerHTML = 'Saknar parametrar';
             return;
         }
-        document.getElementById('infoDisplay').innerHTML = '<i class="fas fa-building"></i> ' + escapeHtml(company) + ' &nbsp;|&nbsp; <i class="fas fa-project-diagram"></i> ' + escapeHtml(project) + ' &nbsp;|&nbsp; <span class="code-badge">' + escapeHtml(originalCode) + '</span>';
+        document.getElementById('infoDisplay').innerHTML = `<i class="fas fa-building"></i> ${escapeHtml(foretag)} &nbsp;|&nbsp; <i class="fas fa-project-diagram"></i> ${escapeHtml(projekt)} &nbsp;|&nbsp; <span class="code-badge">${escapeHtml(originalKod)}</span>`;
         
-        const data = await loadFromFirebase();
-        if (!data || !data.files || Object.keys(data.files).length === 0) {
+        const data = await laddaFranFirebase();
+        if (!data || !data.filer || Object.keys(data.filer).length === 0) {
             document.getElementById('content').innerHTML = '<div class="no-files"><i class="fas fa-folder-open"></i><p>Inga underlag hittades</p></div>';
             return;
         }
-        
-        if (data.description) {
-            document.getElementById('descriptionContainer').innerHTML = '<div class="description"><i class="fas fa-info-circle"></i> ' + escapeHtml(data.description) + '</div>';
+        if (data.beskrivning) {
+            document.getElementById('descriptionContainer').innerHTML = `<div class="description"><i class="fas fa-info-circle"></i> ${escapeHtml(data.beskrivning)}</div>`;
         }
-        
-        const filesArray = Object.values(data.files);
+        const filer = Object.values(data.filer);
         let html = '<div class="files-grid">';
-        for (let i = 0; i < filesArray.length; i++) {
-            const file = filesArray[i];
-            const iconInfo = getFileIconAndColor(file.filename);
+        for (const fil of filer) {
+            const { ikon, farg } = hamtaIkonOchFarg(fil.filnamn);
             html += `
                 <div class="file-card">
-                    <div class="file-icon" style="color:${iconInfo.color};"><i class="fas ${iconInfo.icon} fa-2x"></i></div>
-                    <div class="file-name">${escapeHtml(file.filename)}</div>
+                    <div class="file-icon" style="color:${farg};"><i class="fas ${ikon} fa-2x"></i></div>
+                    <div class="file-name">${escapeHtml(fil.filnamn)}</div>
                     <div class="file-meta">
-                        <span><i class="fas fa-weight-hanging"></i> ${formatSize(file.size)}</span>
-                        <span><i class="fas fa-calendar"></i> ${new Date(file.date).toLocaleDateString('sv-SE')}</span>
+                        <span><i class="fas fa-weight-hanging"></i> ${formateraStorlek(fil.storlek)}</span>
+                        <span><i class="fas fa-calendar"></i> ${new Date(fil.datum).toLocaleDateString('sv-SE')}</span>
                     </div>
                     <div class="file-actions">
-                        <button class="btn btn-view" onclick="viewFileInModal('${file.previewUrl}', '${escapeHtml(file.filename)}')">
+                        <button class="btn btn-view" onclick="visaFilIModal('${fil.visningsUrl}', '${escapeHtml(fil.filnamn)}')">
                             <i class="fas fa-eye"></i> Visa
                         </button>
-                        <button class="btn btn-download" onclick="downloadFile('${file.downloadUrl}', '${escapeHtml(file.filename)}')">
+                        <button class="btn btn-download" onclick="laddaNerFil('${fil.nedladdningsUrl}', '${escapeHtml(fil.filnamn)}')">
                             <i class="fas fa-download"></i> Ladda ner
                         </button>
                     </div>
@@ -424,7 +227,7 @@
         }
         html += '</div>';
         document.getElementById('content').innerHTML = html;
-        showToast('📄 ' + filesArray.length + ' dokument laddades');
+        visaToast(`📄 ${filer.length} dokument laddades`);
     }
     
     init();
