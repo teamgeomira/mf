@@ -88,6 +88,8 @@
     const urlParams = new URLSearchParams(window.location.search);
     const foretag = urlParams.get('company');
     const projekt = urlParams.get('project');
+    const leverantor = urlParams.get('supplier');
+    const del = urlParams.get('part');
     const originalKod = urlParams.get('code');
     
     function rensaForFirebase(str) {
@@ -96,7 +98,7 @@
     }
     
     function hamtaSokvag() {
-        return `underlag/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(originalKod)}`;
+        return `underlag/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(leverantor)}/${rensaForFirebase(del)}/${rensaForFirebase(originalKod)}`;
     }
     
     function visaToast(msg, arFel = false) {
@@ -187,12 +189,12 @@
     }
     
     async function init() {
-        if (!foretag || !projekt || !originalKod) {
-            document.getElementById('content').innerHTML = '<div class="error"><i class="fas fa-exclamation-triangle"></i><p>Felaktig länk. Länken ska innehålla: company, project och code</p><p>Exempel: viewer.html?company=Geomira&project=Kaj8&code=CBB.32</p></div>';
+        if (!foretag || !projekt || !leverantor || !del || !originalKod) {
+            document.getElementById('content').innerHTML = '<div class="error"><i class="fas fa-exclamation-triangle"></i><p>Felaktig länk. Länken ska innehålla: company, project, supplier, part och code</p><p>Exempel: viewer.html?company=Geomira&project=Kaj8&supplier=FirmaX&part=Grund&code=CBB.32</p></div>';
             document.getElementById('infoDisplay').innerHTML = 'Saknar parametrar';
             return;
         }
-        document.getElementById('infoDisplay').innerHTML = `<i class="fas fa-building"></i> ${escapeHtml(foretag)} &nbsp;|&nbsp; <i class="fas fa-project-diagram"></i> ${escapeHtml(projekt)} &nbsp;|&nbsp; <span class="code-badge">${escapeHtml(originalKod)}</span>`;
+        document.getElementById('infoDisplay').innerHTML = `<i class="fas fa-building"></i> ${escapeHtml(foretag)} &nbsp;|&nbsp; <i class="fas fa-project-diagram"></i> ${escapeHtml(projekt)} &nbsp;|&nbsp; <i class="fas fa-truck"></i> ${escapeHtml(leverantor)} &nbsp;|&nbsp; <i class="fas fa-puzzle-piece"></i> ${escapeHtml(del)} &nbsp;|&nbsp; <span class="code-badge">${escapeHtml(originalKod)}</span>`;
         
         const data = await laddaFranFirebase();
         if (!data || !data.filer || Object.keys(data.filer).length === 0) {
