@@ -57,7 +57,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1><i class="fas fa-folder-open"></i> <i class="fas fa-cloud-upload-alt"></i>Ladda upp underlag</h1>
+        <h1><i class="fas fa-folder-open"></i> <i class="fas fa-cloud-upload-alt"></i> Ladda upp underlag</h1>
         <p>Vi erbjuder avancerade och kvalitativa mätningstekniska tjänster anpassade för företags behov.</p>
     </div>
 
@@ -82,6 +82,22 @@
                     <div id="projektDropdown" class="searchable-select-dropdown"></div>
                 </div>
                 <input type="hidden" id="projektValt">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-truck"></i> Leverantör</label>
+                <div class="searchable-select" id="leverantorSelectContainer">
+                    <input type="text" id="leverantorSok" placeholder="Sök eller välj leverantör..." autocomplete="off" disabled>
+                    <div id="leverantorDropdown" class="searchable-select-dropdown"></div>
+                </div>
+                <input type="hidden" id="leverantorValt">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-puzzle-piece"></i> Del</label>
+                <div class="searchable-select" id="delSelectContainer">
+                    <input type="text" id="delSok" placeholder="Sök eller välj del..." autocomplete="off" disabled>
+                    <div id="delDropdown" class="searchable-select-dropdown"></div>
+                </div>
+                <input type="hidden" id="delValt">
             </div>
             <div class="form-group">
                 <label><i class="fas fa-tag"></i> Kod</label>
@@ -132,7 +148,7 @@
 
 <div id="toastMeddelande" class="toast">✅ Klart</div>
 
-<script src="empresas-proyectos.js"></script>
+<script src="foretag-projekt-leverantor-del.js"></script>
 <script>
     // ========== FIREBASE KONFIGURATION ==========
     const firebaseConfig = {
@@ -149,8 +165,8 @@
     firebase.initializeApp(firebaseConfig);
     const databas = firebase.database();
     
-    // Initiera företags- och projektmodulen
-    initieraForetagProjekt(databas, uppdateraEfterAndring);
+    // Initiera hierarkimodulen (företag, projekt, leverantör, del)
+    initieraHierarki(databas, uppdateraEfterAndring);
     
     console.log("✅ Firebase initierad – underlag01");
     
@@ -165,8 +181,8 @@
         return str.replace(/\./g, '-').replace(/[#$\[\]\/]/g, '_').replace(/\s+/g, '_');
     }
     
-    function hamtaSokvag(foretag, projekt, kod) {
-        return `underlag/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(kod)}`;
+    function hamtaSokvag(foretag, projekt, leverantor, del, kod) {
+        return `underlag/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(leverantor)}/${rensaForFirebase(del)}/${rensaForFirebase(kod)}`;
     }
     
     // DOM-element
@@ -176,6 +192,12 @@
     const projektSok = document.getElementById('projektSok');
     const projektDropdown = document.getElementById('projektDropdown');
     const projektValt = document.getElementById('projektValt');
+    const leverantorSok = document.getElementById('leverantorSok');
+    const leverantorDropdown = document.getElementById('leverantorDropdown');
+    const leverantorValt = document.getElementById('leverantorValt');
+    const delSok = document.getElementById('delSok');
+    const delDropdown = document.getElementById('delDropdown');
+    const delValt = document.getElementById('delValt');
     const kodInput = document.getElementById('kodInput');
     const beskrivningInput = document.getElementById('beskrivningInput');
     const dropzone = document.getElementById('dropzone');
@@ -196,8 +218,12 @@
     let nuvarandeData = null;
     let foretagLimit = 10;
     let projektLimit = 10;
+    let leverantorLimit = 10;
+    let delLimit = 10;
     let nuvarandeForetag = [];
     let nuvarandeProjekt = [];
+    let nuvarandeLeverantorer = [];
+    let nuvarandeDelar = [];
     
     function visaToast(meddelande, arFel = false) {
         toast.textContent = meddelande;
@@ -269,7 +295,7 @@
         });
     }
     
-    // ========== RULLGARDINSMENYER ==========
+    // ========== RULLGARDINSMENYER (hierarki) ==========
     async function uppdateraForetagDropdown() {
         const sokeTerm = foretagSok.value.toLowerCase();
         let foretag = await filtreraForetag(sokeTerm);
@@ -342,6 +368,7 @@
                 projektSok.value = val;
                 projektValt.value = val;
                 projektDropdown.style.display = 'none';
+                await uppdateraLeverantörEfterProjekt(foretagValt.value, val);
                 await laddaBefintligaFiler();
             });
         });
@@ -351,26 +378,125 @@
         if (farreBtn) farreBtn.addEventListener('click', () => { projektLimit = 10; uppdateraProjektDropdown(); });
     }
     
+    async function uppdateraLeverantörEfterProjekt(foretag, projekt) {
+        const leverantorer = await hamtaLeverantörer(foretag, projekt);
+        nuvarandeLeverantorer = leverantorer;
+        leverantorSok.disabled = false;
+        await uppdateraLeverantörDropdown();
+    }
+    
+    async function uppdateraLeverantörDropdown() {
+        if (!foretagValt.value || !projektValt.value) {
+            leverantorSok.disabled = true;
+            leverantorDropdown.innerHTML = '';
+            return;
+        }
+        const sokeTerm = leverantorSok.value.toLowerCase();
+        let leverantorer = nuvarandeLeverantorer;
+        const filtrerade = sokeTerm ? leverantorer.filter(l => l.toLowerCase().includes(sokeTerm)) : leverantorer;
+        const visade = filtrerade.slice(0, leverantorLimit);
+        const harFler = filtrerade.length > leverantorLimit;
+        
+        if (visade.length === 0 && sokeTerm) {
+            leverantorDropdown.innerHTML = '<div style="color:#999;">Ingen leverantör hittades. Klicka på "Hantera" för att lägga till.</div>';
+        } else {
+            let html = visade.map(l => `<div data-value="${escapeHtml(l)}">${escapeHtml(l)}</div>`).join('');
+            if (harFler) {
+                html += `<div class="scroll-control" id="leverantorVisaFler">➕ Visa fler (${filtrerade.length - leverantorLimit} fler)</div>`;
+            } else if (filtrerade.length > 10) {
+                html += `<div class="scroll-control" id="leverantorVisaFarre">➖ Visa färre</div>`;
+            }
+            leverantorDropdown.innerHTML = html;
+        }
+        
+        leverantorDropdown.querySelectorAll('div[data-value]').forEach(div => {
+            div.addEventListener('click', async () => {
+                const val = div.dataset.value;
+                leverantorSok.value = val;
+                leverantorValt.value = val;
+                leverantorDropdown.style.display = 'none';
+                await uppdateraDelEfterLeverantör(foretagValt.value, projektValt.value, val);
+                await laddaBefintligaFiler();
+            });
+        });
+        const flerBtn = leverantorDropdown.querySelector('#leverantorVisaFler');
+        if (flerBtn) flerBtn.addEventListener('click', () => { leverantorLimit += 20; uppdateraLeverantörDropdown(); });
+        const farreBtn = leverantorDropdown.querySelector('#leverantorVisaFarre');
+        if (farreBtn) farreBtn.addEventListener('click', () => { leverantorLimit = 10; uppdateraLeverantörDropdown(); });
+    }
+    
+    async function uppdateraDelEfterLeverantör(foretag, projekt, leverantor) {
+        const delar = await hamtaDelar(foretag, projekt, leverantor);
+        nuvarandeDelar = delar;
+        delSok.disabled = false;
+        await uppdateraDelDropdown();
+    }
+    
+    async function uppdateraDelDropdown() {
+        if (!foretagValt.value || !projektValt.value || !leverantorValt.value) {
+            delSok.disabled = true;
+            delDropdown.innerHTML = '';
+            return;
+        }
+        const sokeTerm = delSok.value.toLowerCase();
+        let delar = nuvarandeDelar;
+        const filtrerade = sokeTerm ? delar.filter(d => d.toLowerCase().includes(sokeTerm)) : delar;
+        const visade = filtrerade.slice(0, delLimit);
+        const harFler = filtrerade.length > delLimit;
+        
+        if (visade.length === 0 && sokeTerm) {
+            delDropdown.innerHTML = '<div style="color:#999;">Ingen del hittades. Klicka på "Hantera" för att lägga till.</div>';
+        } else {
+            let html = visade.map(d => `<div data-value="${escapeHtml(d)}">${escapeHtml(d)}</div>`).join('');
+            if (harFler) {
+                html += `<div class="scroll-control" id="delVisaFler">➕ Visa fler (${filtrerade.length - delLimit} fler)</div>`;
+            } else if (filtrerade.length > 10) {
+                html += `<div class="scroll-control" id="delVisaFarre">➖ Visa färre</div>`;
+            }
+            delDropdown.innerHTML = html;
+        }
+        
+        delDropdown.querySelectorAll('div[data-value]').forEach(div => {
+            div.addEventListener('click', async () => {
+                const val = div.dataset.value;
+                delSok.value = val;
+                delValt.value = val;
+                delDropdown.style.display = 'none';
+                await laddaBefintligaFiler();
+            });
+        });
+        const flerBtn = delDropdown.querySelector('#delVisaFler');
+        if (flerBtn) flerBtn.addEventListener('click', () => { delLimit += 20; uppdateraDelDropdown(); });
+        const farreBtn = delDropdown.querySelector('#delVisaFarre');
+        if (farreBtn) farreBtn.addEventListener('click', () => { delLimit = 10; uppdateraDelDropdown(); });
+    }
+    
     function laggTillDropdownEventer() {
         foretagSok.addEventListener('focus', () => { uppdateraForetagDropdown(); foretagDropdown.style.display = 'block'; });
         foretagSok.addEventListener('input', () => { uppdateraForetagDropdown(); foretagDropdown.style.display = 'block'; });
         projektSok.addEventListener('focus', () => { if (foretagValt.value) { uppdateraProjektDropdown(); projektDropdown.style.display = 'block'; } });
         projektSok.addEventListener('input', () => { if (foretagValt.value) { uppdateraProjektDropdown(); projektDropdown.style.display = 'block'; } });
+        leverantorSok.addEventListener('focus', () => { if (foretagValt.value && projektValt.value) { uppdateraLeverantörDropdown(); leverantorDropdown.style.display = 'block'; } });
+        leverantorSok.addEventListener('input', () => { if (foretagValt.value && projektValt.value) { uppdateraLeverantörDropdown(); leverantorDropdown.style.display = 'block'; } });
+        delSok.addEventListener('focus', () => { if (foretagValt.value && projektValt.value && leverantorValt.value) { uppdateraDelDropdown(); delDropdown.style.display = 'block'; } });
+        delSok.addEventListener('input', () => { if (foretagValt.value && projektValt.value && leverantorValt.value) { uppdateraDelDropdown(); delDropdown.style.display = 'block'; } });
         document.addEventListener('click', (e) => {
             if (!foretagSok.contains(e.target) && !foretagDropdown.contains(e.target)) foretagDropdown.style.display = 'none';
             if (!projektSok.contains(e.target) && !projektDropdown.contains(e.target)) projektDropdown.style.display = 'none';
+            if (!leverantorSok.contains(e.target) && !leverantorDropdown.contains(e.target)) leverantorDropdown.style.display = 'none';
+            if (!delSok.contains(e.target) && !delDropdown.contains(e.target)) delDropdown.style.display = 'none';
         });
     }
     
     // ========== CLOUDINARY OCH FIREBASE ==========
-    async function laddaUppFilTillCloudinary(fil, foretag, projekt, kod) {
+    async function laddaUppFilTillCloudinary(fil, foretag, projekt, leverantor, del, kod) {
         const formData = new FormData();
         const tid = Date.now();
         const namn = fil.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
-        const offentligtId = `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(kod)}/${tid}_${namn}`;
+        const offentligtId = `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(leverantor)}/${rensaForFirebase(del)}/${rensaForFirebase(kod)}/${tid}_${namn}`;
         formData.append('file', fil);
         formData.append('upload_preset', UPP_LADDNINGSPRESET);
-        formData.append('folder', `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(kod)}`);
+        formData.append('folder', `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(leverantor)}/${rensaForFirebase(del)}/${rensaForFirebase(kod)}`);
         formData.append('public_id', offentligtId);
         formData.append('resource_type', 'auto');
         try {
@@ -395,8 +521,8 @@
         }
     }
     
-    async function sparaTillFirebase(foretag, projekt, kod, beskrivning, filer) {
-        const sökväg = hamtaSokvag(foretag, projekt, kod);
+    async function sparaTillFirebase(foretag, projekt, leverantor, del, kod, beskrivning, filer) {
+        const sökväg = hamtaSokvag(foretag, projekt, leverantor, del, kod);
         const referens = databas.ref(sökväg);
         const snapshot = await referens.once('value');
         let befintligData = snapshot.val() || {};
@@ -419,6 +545,8 @@
             beskrivning: beskrivning || befintligData.beskrivning || '',
             foretag: foretag,
             projekt: projekt,
+            leverantor: leverantor,
+            del: del,
             kod: kod,
             skapad: befintligData.skapad || new Date().toISOString(),
             uppdaterad: new Date().toISOString(),
@@ -427,10 +555,10 @@
         return true;
     }
     
-    async function laddaBefintligData(foretag, projekt, kod) {
-        if (!foretag || !projekt || !kod) return null;
+    async function laddaBefintligData(foretag, projekt, leverantor, del, kod) {
+        if (!foretag || !projekt || !leverantor || !del || !kod) return null;
         try {
-            const sökväg = hamtaSokvag(foretag, projekt, kod);
+            const sökväg = hamtaSokvag(foretag, projekt, leverantor, del, kod);
             const snapshot = await databas.ref(sökväg).once('value');
             return snapshot.val();
         } catch (fel) {
@@ -442,12 +570,14 @@
     async function laddaBefintligaFiler() {
         const foretag = foretagValt.value;
         const projekt = projektValt.value;
+        const leverantor = leverantorValt.value;
+        const del = delValt.value;
         const kod = kodInput.value.trim().toUpperCase();
-        if (!foretag || !projekt || !kod) {
+        if (!foretag || !projekt || !leverantor || !del || !kod) {
             befintligaFilerKort.style.display = 'none';
             return;
         }
-        nuvarandeData = await laddaBefintligData(foretag, projekt, kod);
+        nuvarandeData = await laddaBefintligData(foretag, projekt, leverantor, del, kod);
         if (!nuvarandeData || !nuvarandeData.filer || Object.keys(nuvarandeData.filer).length === 0) {
             befintligaFilerKort.style.display = 'none';
             return;
@@ -478,22 +608,22 @@
             knapp.addEventListener('click', async () => {
                 const filId = knapp.dataset.filid;
                 if (confirm('Ta bort denna fil?')) {
-                    await taBortEnskildFil(foretagValt.value, projektValt.value, kodInput.value.trim().toUpperCase(), filId);
+                    await taBortEnskildFil(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value, kodInput.value.trim().toUpperCase(), filId);
                 }
             });
         });
     }
     
-    async function taBortEnskildFil(foretag, projekt, kod, filId) {
-        const sökväg = hamtaSokvag(foretag, projekt, kod);
+    async function taBortEnskildFil(foretag, projekt, leverantor, del, kod, filId) {
+        const sökväg = hamtaSokvag(foretag, projekt, leverantor, del, kod);
         await databas.ref(`${sökväg}/filer/${filId}`).remove();
         visaToast('✅ Fil borttagen');
         await laddaBefintligaFiler();
     }
     
-    async function taBortHelaKoden(foretag, projekt, kod) {
+    async function taBortHelaKoden(foretag, projekt, leverantor, del, kod) {
         if (!confirm(`Är du säker på att du vill ta bort ALLA filer för koden ${kod}?`)) return;
-        const sökväg = hamtaSokvag(foretag, projekt, kod);
+        const sökväg = hamtaSokvag(foretag, projekt, leverantor, del, kod);
         await databas.ref(sökväg).remove();
         visaToast('✅ Kod och alla filer borttagna');
         befintligaFilerKort.style.display = 'none';
@@ -501,15 +631,19 @@
     }
     
     taBortKodBtn.addEventListener('click', async () => {
-        await taBortHelaKoden(foretagValt.value, projektValt.value, kodInput.value.trim().toUpperCase());
+        await taBortHelaKoden(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value, kodInput.value.trim().toUpperCase());
     });
     
     async function laddaUppFiler() {
         const foretag = foretagValt.value;
         const projekt = projektValt.value;
+        const leverantor = leverantorValt.value;
+        const del = delValt.value;
         const kod = kodInput.value.trim().toUpperCase();
         if (!foretag) { visaToast('❌ Välj företag', true); return; }
         if (!projekt) { visaToast('❌ Välj projekt', true); return; }
+        if (!leverantor) { visaToast('❌ Välj leverantör', true); return; }
+        if (!del) { visaToast('❌ Välj del', true); return; }
         if (!kod) { visaToast('❌ Ange kod (t.ex. CBB.32)', true); return; }
         if (valdaFiler.length === 0) { visaToast('❌ Välj minst en fil', true); return; }
         
@@ -522,7 +656,7 @@
         visaToast(`📤 Laddar upp ${total} fil(er)...`);
         
         for (let i = 0; i < valdaFiler.length; i++) {
-            const resultat = await laddaUppFilTillCloudinary(valdaFiler[i], foretag, projekt, kod);
+            const resultat = await laddaUppFilTillCloudinary(valdaFiler[i], foretag, projekt, leverantor, del, kod);
             if (resultat.success) {
                 uppladdadeFiler.push(resultat);
             } else {
@@ -534,18 +668,18 @@
         
         if (uppladdadeFiler.length > 0) {
             const beskrivning = beskrivningInput.value.trim();
-            await sparaTillFirebase(foretag, projekt, kod, beskrivning, uppladdadeFiler);
+            await sparaTillFirebase(foretag, projekt, leverantor, del, kod, beskrivning, uppladdadeFiler);
             
             let basUrl = window.location.href;
             if (basUrl.includes('index.html')) basUrl = basUrl.replace('index.html', '');
             if (!basUrl.endsWith('/')) basUrl += '/';
-            const LANK = `${basUrl}viewer.html?company=${encodeURIComponent(foretag)}&project=${encodeURIComponent(projekt)}&code=${encodeURIComponent(kod)}`;
+            const LANK = `${basUrl}viewer.html?company=${encodeURIComponent(foretag)}&project=${encodeURIComponent(projekt)}&supplier=${encodeURIComponent(leverantor)}&part=${encodeURIComponent(del)}&code=${encodeURIComponent(kod)}`;
             
             resultatContainer.style.display = 'block';
             resultatContainer.innerHTML = `
                 <h4><i class="fas fa-check-circle" style="color:#10b981;"></i> Filer uppladdade!</h4>
                 <p>📁 ${uppladdadeFiler.length} fil(er) uppladdade</p>
-                <p>🏢 Företag: <strong>${escapeHtml(foretag)}</strong> | 📂 Projekt: <strong>${escapeHtml(projekt)}</strong> | 🏷️ Kod: <strong class="code-badge">${escapeHtml(kod)}</strong></p>
+                <p>🏢 Företag: <strong>${escapeHtml(foretag)}</strong> | 📂 Projekt: <strong>${escapeHtml(projekt)}</strong> | 🚚 Leverantör: <strong>${escapeHtml(leverantor)}</strong> | 🧩 Del: <strong>${escapeHtml(del)}</strong> | 🏷️ Kod: <strong class="code-badge">${escapeHtml(kod)}</strong></p>
                 <hr>
                 <p><strong>🔗 LÄNK ATT KLISTRA IN I EXCEL/PDF:</strong></p>
                 <input type="text" id="lankInput" value="${LANK}" readonly style="width:100%; padding:0.8rem; border-radius:0.8rem; border:2px solid #cbdde9; margin:0.5rem 0; font-family: monospace;">
@@ -585,6 +719,8 @@
         console.log("🔄 Uppdaterar rullgardinsmenyer efter ändring");
         await uppdateraForetagDropdown();
         if (foretagValt.value) await uppdateraProjektEfterForetag(foretagValt.value);
+        if (foretagValt.value && projektValt.value) await uppdateraLeverantörEfterProjekt(foretagValt.value, projektValt.value);
+        if (foretagValt.value && projektValt.value && leverantorValt.value) await uppdateraDelEfterLeverantör(foretagValt.value, projektValt.value, leverantorValt.value);
         await laddaBefintligaFiler();
     }
     
