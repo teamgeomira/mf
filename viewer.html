@@ -37,9 +37,12 @@
         .ama-footer a { background: #2c7cb6; color: white; padding: 0.3rem 1rem; border-radius: 2rem; text-decoration: none; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.4rem; transition: background 0.2s; }
         .ama-footer a:hover { background: #1f5a82; }
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
-        .modal-preview { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal-content-preview { background: white; border-radius: 1rem; max-width: 90%; max-height: 90%; overflow: auto; position: relative; padding: 1rem; }
-        .modal-content-preview iframe, .modal-content-preview img, .modal-content-preview video { max-width: 100%; max-height: 80vh; }
+        .modal-preview { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content-preview { background: #1a2f3e; border-radius: 0; width: 100%; height: 100%; overflow: auto; position: relative; padding: 0; }
+        .modal-content-preview iframe { width: 100%; height: 100%; border: none; }
+        .modal-content-preview img, .modal-content-preview video { max-width: 100%; max-height: 90vh; margin: auto; display: block; }
+        .close-modal { position: absolute; top: 15px; right: 25px; font-size: 2.5rem; cursor: pointer; color: white; background: rgba(0,0,0,0.5); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; }
+        .close-modal:hover { background: rgba(0,0,0,0.8); }
         .close-modal { position: absolute; top: 10px; right: 20px; font-size: 2rem; cursor: pointer; color: #333; }
         @media (max-width: 768px) { body { padding: 1rem; } .files-grid { grid-template-columns: 1fr; } }
     </style>
@@ -199,12 +202,35 @@
         const bildExt = ['jpg','jpeg','png','gif','webp','bmp','svg'];
         const videoExt = ['mp4','webm','mov','avi'];
         
+        // Limpiar contenido anterior
+        forhandsgranskning.innerHTML = '';
+        
         if (ext === 'pdf') {
-            forhandsgranskning.innerHTML = `<iframe src="${url}" style="width:100%; height:80vh;" frameborder="0"></iframe>`;
+            // PDF a pantalla completa
+            forhandsgranskning.innerHTML = `<iframe src="${url}" style="width:100%; height:100vh; border:none;"></iframe>`;
         } else if (bildExt.includes(ext)) {
-            forhandsgranskning.innerHTML = `<img src="${url}" alt="${filnamn}" style="max-width:100%; max-height:80vh;">`;
+            // Imagen centrada
+            forhandsgranskning.innerHTML = `<img src="${url}" alt="${filnamn}" style="max-width:100%; max-height:90vh; object-fit:contain;">`;
         } else if (videoExt.includes(ext)) {
-            forhandsgranskning.innerHTML = `<video controls style="max-width:100%; max-height:80vh;"><source src="${url}" type="video/${ext}">Din webbläsare stödjer inte videouppspelning.</video>`;
+            // Video
+            forhandsgranskning.innerHTML = `<video controls style="width:100%; max-height:90vh;"><source src="${url}" type="video/${ext}">Din webbläsare stödjer inte videouppspelning.</video>`;
+        } else if (ext === 'dwg' || ext === 'dxf') {
+            // Para archivos DWG, sugerir descarga o abrir en AutoCAD
+            forhandsgranskning.innerHTML = `
+                <div style="text-align:center; padding:2rem;">
+                    <i class="fas fa-draw-polygon" style="font-size:4rem; color:#e67e22;"></i>
+                    <h3 style="margin-top:1rem;">${escapeHtml(filnamn)}</h3>
+                    <p>AutoCAD filer kan inte visas direkt i webbläsaren.</p>
+                    <div style="margin-top:1.5rem; display:flex; gap:1rem; justify-content:center;">
+                        <button onclick="laddaNerFil('${url}', '${escapeHtml(filnamn)}')" class="btn btn-download" style="background:#10b981; color:white; padding:0.5rem 1.5rem;">
+                            <i class="fas fa-download"></i> Ladda ner fil
+                        </button>
+                        <a href="https://gallery.proficad.com/tools/autocad-viewer.aspx" target="_blank" class="btn" style="background:#e67e22; color:white; padding:0.5rem 1.5rem; text-decoration:none;">
+                            <i class="fas fa-external-link-alt"></i> Öppna i gratis DWG Viewer
+                        </a>
+                    </div>
+                </div>
+            `;
         } else {
             laddaNerFil(url, filnamn);
             return;
