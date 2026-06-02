@@ -26,14 +26,6 @@
         .searchable-select-dropdown div { padding: 0.8rem 1rem; cursor: pointer; border-bottom: 1px solid #eef3fc; }
         .searchable-select-dropdown div:hover { background: #eef3fc; }
         .scroll-control { text-align: center; padding: 0.5rem; background: #f8fafc; border-top: 1px solid #cbdde9; font-size: 0.75rem; cursor: pointer; }
-        .dropzone { border: 2.5px dashed #8bb4d0; border-radius: 1.5rem; background: #fafdff; padding: 2rem; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; }
-        .dropzone.drag-over { border-color: #1f7ea3; background: #e6f4fe; }
-        .dropzone i { font-size: 3rem; color: #5a8eb0; margin-bottom: 0.5rem; }
-        .file-list { margin-top: 1rem; max-height: 300px; overflow-y: auto; }
-        .file-item { background: #f0f6fc; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-        .file-name { flex: 1; font-size: 0.85rem; word-break: break-all; }
-        .file-size { font-size: 0.75rem; color: #6c8dab; }
-        .remove-file { background: #fee2e2; border: none; padding: 0.3rem 0.7rem; border-radius: 2rem; cursor: pointer; color: #b91c2c; font-size: 0.7rem; }
         .btn-primary, .btn-secondary, .btn-danger, .btn-success { border: none; padding: 0.8rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; }
         .btn-primary { background: #2c7cb6; color: white; }
         .btn-primary:hover { background: #1f5a82; }
@@ -52,6 +44,10 @@
         .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; background: #f8fafc; padding: 0.8rem; border-radius: 1rem; }
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2f3e; color: white; padding: 10px 24px; border-radius: 40px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
         .flex-buttons { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+        /* Dölj den gamla uppladdningsdelen */
+        #oldUploadSection {
+            display: none;
+        }
         @media (max-width: 768px) { body { padding: 1rem; } .card { padding: 1.5rem; } }
     </style>
 </head>
@@ -59,13 +55,14 @@
 <div class="container">
     <div class="header">
         <h1><i class="fas fa-folder-open"></i> <i class="fas fa-cloud-upload-alt"></i> Ladda upp & hantera underlag</h1>
-        <p>Företag → Projekt → Leverantör → Del → Kod – ladda upp nya filer eller ta bort befintliga</p>
+        <p>Företag → Projekt → Leverantör → Del → Kod – hantera filer och mappar</p>
     </div>
 
     <div class="card">
         <div class="toolbar">
             <button id="hanteraBtn" class="btn-success"><i class="fas fa-database"></i> Hantera struktur</button>
             <button id="laddaBefintligaBtn" class="btn-secondary"><i class="fas fa-sync-alt"></i> Ladda befintliga filer</button>
+            <button id="kopieraVisningsLankBtn" class="btn-secondary"><i class="fas fa-link"></i> Kopiera visningslänk</button>
         </div>
 
         <div class="row-5">
@@ -102,8 +99,12 @@
                 <input type="hidden" id="delValt">
             </div>
             <div class="form-group">
-                <label><i class="fas fa-tag"></i> Kod (obligatorisk)</label>
-                <input type="text" id="kodInput" placeholder="Exempel: CBB.32" autocomplete="off">
+                <label><i class="fas fa-tag"></i> Kod</label>
+                <div class="searchable-select" id="kodSelectContainer">
+                    <input type="text" id="kodSok" placeholder="Sök eller välj kod..." autocomplete="off" disabled>
+                    <div id="kodDropdown" class="searchable-select-dropdown"></div>
+                </div>
+                <input type="hidden" id="kodValt">
             </div>
         </div>
 
@@ -112,28 +113,28 @@
             <input type="text" id="beskrivningInput" placeholder="Vad innehåller filerna?">
         </div>
 
-        <div class="form-group">
-            <label><i class="fas fa-paperclip"></i> Välj nya filer att ladda upp</label>
-            <div class="dropzone" id="dropzone">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Dra och släpp filer hit</p>
-                <small>Alla format stöds: PDF, DWG, ZIP, JPG, PNG, MP4, DOCX, XLSX</small>
-                <div class="btn-secondary" style="display: inline-block; margin-top: 10px; padding: 0.5rem 1rem;">
-                    <i class="fas fa-folder-open"></i> Välj filer
+        <!-- Gamla uppladdningsdelen – gömd (behålls för folder-manager.js dropzone) -->
+        <div id="oldUploadSection" style="display: none;">
+            <div class="form-group">
+                <label><i class="fas fa-paperclip"></i> Välj nya filer att ladda upp</label>
+                <div class="dropzone" id="dropzone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Dra och släpp filer hit</p>
+                    <small>Alla format stöds: PDF, DWG, ZIP, JPG, PNG, MP4, DOCX, XLSX</small>
+                    <div class="btn-secondary" style="display: inline-block; margin-top: 10px; padding: 0.5rem 1rem;">
+                        <i class="fas fa-folder-open"></i> Välj filer
+                    </div>
                 </div>
+                <input type="file" id="filInput" multiple style="display:none">
             </div>
-            <input type="file" id="filInput" multiple style="display:none">
-        </div>
-
-        <div id="filLista" class="file-list"></div>
-
-        <div class="progress-bar" id="framstegsBar" style="display: none;">
-            <div class="progress-fill" id="framstegsFyllning"></div>
-        </div>
-
-        <div class="flex-buttons">
-            <button id="laddaUppBtn" class="btn-primary"><i class="fas fa-upload"></i> Ladda upp nya filer</button>
-            <button id="rensaBtn" class="btn-secondary"><i class="fas fa-trash-alt"></i> Rensa valda filer</button>
+            <div id="filLista" class="file-list"></div>
+            <div class="progress-bar" id="framstegsBar" style="display: none;">
+                <div class="progress-fill" id="framstegsFyllning"></div>
+            </div>
+            <div class="flex-buttons">
+                <button id="laddaUppBtn" class="btn-primary"><i class="fas fa-upload"></i> Ladda upp nya filer</button>
+                <button id="rensaBtn" class="btn-secondary"><i class="fas fa-trash-alt"></i> Rensa valda filer</button>
+            </div>
         </div>
 
         <div id="resultatContainer" class="result-link"></div>
@@ -198,16 +199,10 @@
     const delSok = document.getElementById('delSok');
     const delDropdown = document.getElementById('delDropdown');
     const delValt = document.getElementById('delValt');
-    const kodInput = document.getElementById('kodInput');
+    const kodSok = document.getElementById('kodSok');
+    const kodDropdown = document.getElementById('kodDropdown');
+    const kodValt = document.getElementById('kodValt');
     const beskrivningInput = document.getElementById('beskrivningInput');
-    const dropzone = document.getElementById('dropzone');
-    const filInput = document.getElementById('filInput');
-    const filListaContainer = document.getElementById('filLista');
-    const laddaUppBtn = document.getElementById('laddaUppBtn');
-    const rensaBtn = document.getElementById('rensaBtn');
-    const framstegsBar = document.getElementById('framstegsBar');
-    const framstegsFyllning = document.getElementById('framstegsFyllning');
-    const resultatContainer = document.getElementById('resultatContainer');
     const befintligaFilerKort = document.getElementById('befintligaFilerKort');
     const befintligaFilerLista = document.getElementById('befintligaFilerLista');
     const taBortKodBtn = document.getElementById('taBortKodBtn');
@@ -215,11 +210,11 @@
     const hanteraBtn = document.getElementById('hanteraBtn');
     const laddaBefintligaBtn = document.getElementById('laddaBefintligaBtn');
     const uppdateraBefintligaBtn = document.getElementById('uppdateraBefintligaBtn');
+    const kopieraVisningsLankBtn = document.getElementById('kopieraVisningsLankBtn');
     
-    let valdaFiler = [];
     let nuvarandeData = null;
-    let foretagLimit = 10, projektLimit = 10, leverantorLimit = 10, delLimit = 10;
-    let nuvarandeForetag = [], nuvarandeProjekt = [], nuvarandeLeverantorer = [], nuvarandeDelar = [];
+    let foretagLimit = 10, projektLimit = 10, leverantorLimit = 10, delLimit = 10, kodLimit = 10;
+    let nuvarandeForetag = [], nuvarandeProjekt = [], nuvarandeLeverantorer = [], nuvarandeDelar = [], nuvarandeKoder = [];
     
     function visaToast(meddelande, arFel = false) {
         toast.textContent = meddelande;
@@ -233,18 +228,6 @@
         const enheter = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(byte) / Math.log(1024));
         return (byte / Math.pow(1024, i)).toFixed(2) + ' ' + enheter[i];
-    }
-    
-    function hamtaFilIkon(filnamn) {
-        const ext = filnamn.split('.').pop().toLowerCase();
-        if (ext === 'pdf') return 'fa-file-pdf';
-        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'fa-file-image';
-        if (['mp4','webm','mov','avi'].includes(ext)) return 'fa-file-video';
-        if (['zip','rar','7z'].includes(ext)) return 'fa-file-archive';
-        if (['dwg','dxf'].includes(ext)) return 'fa-draw-polygon';
-        if (['doc','docx'].includes(ext)) return 'fa-file-word';
-        if (['xls','xlsx','csv'].includes(ext)) return 'fa-file-excel';
-        return 'fa-file';
     }
     
     function hamtaIkonOchFarg(filnamn) {
@@ -262,33 +245,6 @@
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-    }
-    
-    function renderaFilLista() {
-        if (valdaFiler.length === 0) {
-            filListaContainer.innerHTML = '<div style="text-align:center; color:#9bb3c9; padding:1rem;"><i class="fas fa-inbox"></i> Inga filer valda</div>';
-            return;
-        }
-        let html = '';
-        for (let i = 0; i < valdaFiler.length; i++) {
-            const fil = valdaFiler[i];
-            html += `
-                <div class="file-item">
-                    <i class="fas ${hamtaFilIkon(fil.name)}"></i>
-                    <span class="file-name">${escapeHtml(fil.name)}</span>
-                    <span class="file-size">${formateraStorlek(fil.size)}</span>
-                    <button class="remove-file" data-index="${i}"><i class="fas fa-times"></i> Ta bort</button>
-                </div>
-            `;
-        }
-        filListaContainer.innerHTML = html;
-        document.querySelectorAll('.remove-file').forEach(knapp => {
-            knapp.addEventListener('click', (e) => {
-                const index = parseInt(knapp.dataset.index);
-                valdaFiler.splice(index, 1);
-                renderaFilLista();
-            });
-        });
     }
     
     // ========== RULLGARDINER (hierarki) ==========
@@ -323,7 +279,17 @@
     }
     
     async function uppdateraProjektEfterForetag(foretag) {
-        if (!foretag) { projektSok.disabled = true; projektValt.value = ''; leverantorSok.disabled = true; leverantorValt.value = ''; delSok.disabled = true; delValt.value = ''; return; }
+        if (!foretag) { 
+            projektSok.disabled = true; 
+            projektValt.value = ''; 
+            leverantorSok.disabled = true; 
+            leverantorValt.value = ''; 
+            delSok.disabled = true; 
+            delValt.value = ''; 
+            kodSok.disabled = true; 
+            kodValt.value = ''; 
+            return; 
+        }
         const projekt = await hamtaProjekt(foretag);
         nuvarandeProjekt = projekt;
         projektSok.disabled = false;
@@ -331,7 +297,11 @@
     }
     
     async function uppdateraProjektDropdown() {
-        if (!foretagValt.value) { projektSok.disabled = true; projektDropdown.innerHTML = ''; return; }
+        if (!foretagValt.value) { 
+            projektSok.disabled = true; 
+            projektDropdown.innerHTML = ''; 
+            return; 
+        }
         const sokeTerm = projektSok.value.toLowerCase();
         let projekt = nuvarandeProjekt;
         const filtrerade = sokeTerm ? projekt.filter(p => p.toLowerCase().includes(sokeTerm)) : projekt;
@@ -362,7 +332,15 @@
     }
     
     async function uppdateraLeverantörEfterProjekt(foretag, projekt) {
-        if (!foretag || !projekt) { leverantorSok.disabled = true; leverantorValt.value = ''; delSok.disabled = true; delValt.value = ''; return; }
+        if (!foretag || !projekt) { 
+            leverantorSok.disabled = true; 
+            leverantorValt.value = ''; 
+            delSok.disabled = true; 
+            delValt.value = ''; 
+            kodSok.disabled = true; 
+            kodValt.value = ''; 
+            return; 
+        }
         const leverantorer = await hamtaLeverantörer(foretag, projekt);
         nuvarandeLeverantorer = leverantorer;
         leverantorSok.disabled = false;
@@ -370,7 +348,11 @@
     }
     
     async function uppdateraLeverantörDropdown() {
-        if (!foretagValt.value || !projektValt.value) { leverantorSok.disabled = true; leverantorDropdown.innerHTML = ''; return; }
+        if (!foretagValt.value || !projektValt.value) { 
+            leverantorSok.disabled = true; 
+            leverantorDropdown.innerHTML = ''; 
+            return; 
+        }
         const sokeTerm = leverantorSok.value.toLowerCase();
         let leverantorer = nuvarandeLeverantorer;
         const filtrerade = sokeTerm ? leverantorer.filter(l => l.toLowerCase().includes(sokeTerm)) : leverantorer;
@@ -401,7 +383,13 @@
     }
     
     async function uppdateraDelEfterLeverantör(foretag, projekt, leverantor) {
-        if (!foretag || !projekt || !leverantor) { delSok.disabled = true; delValt.value = ''; return; }
+        if (!foretag || !projekt || !leverantor) { 
+            delSok.disabled = true; 
+            delValt.value = ''; 
+            kodSok.disabled = true; 
+            kodValt.value = ''; 
+            return; 
+        }
         const delar = await hamtaDelar(foretag, projekt, leverantor);
         nuvarandeDelar = delar;
         delSok.disabled = false;
@@ -409,7 +397,11 @@
     }
     
     async function uppdateraDelDropdown() {
-        if (!foretagValt.value || !projektValt.value || !leverantorValt.value) { delSok.disabled = true; delDropdown.innerHTML = ''; return; }
+        if (!foretagValt.value || !projektValt.value || !leverantorValt.value) { 
+            delSok.disabled = true; 
+            delDropdown.innerHTML = ''; 
+            return; 
+        }
         const sokeTerm = delSok.value.toLowerCase();
         let delar = nuvarandeDelar;
         const filtrerade = sokeTerm ? delar.filter(d => d.toLowerCase().includes(sokeTerm)) : delar;
@@ -429,6 +421,7 @@
                 delSok.value = val;
                 delValt.value = val;
                 delDropdown.style.display = 'none';
+                await uppdateraKodEfterDel(foretagValt.value, projektValt.value, leverantorValt.value, val);
                 await laddaBefintligaFiler();
             });
         });
@@ -436,6 +429,52 @@
         if (flerBtn) flerBtn.addEventListener('click', () => { delLimit += 20; uppdateraDelDropdown(); });
         const farreBtn = delDropdown.querySelector('#delVisaFarre');
         if (farreBtn) farreBtn.addEventListener('click', () => { delLimit = 10; uppdateraDelDropdown(); });
+    }
+    
+    async function uppdateraKodEfterDel(foretag, projekt, leverantor, del) {
+        if (!foretag || !projekt || !leverantor || !del) { 
+            kodSok.disabled = true; 
+            kodValt.value = ''; 
+            return; 
+        }
+        const koder = await hamtaKoder(foretag, projekt, leverantor, del);
+        nuvarandeKoder = koder;
+        kodSok.disabled = false;
+        await uppdateraKodDropdown();
+    }
+    
+    async function uppdateraKodDropdown() {
+        if (!foretagValt.value || !projektValt.value || !leverantorValt.value || !delValt.value) { 
+            kodSok.disabled = true; 
+            kodDropdown.innerHTML = ''; 
+            return; 
+        }
+        const sokeTerm = kodSok.value.toLowerCase();
+        let koder = nuvarandeKoder;
+        const filtrerade = sokeTerm ? koder.filter(k => k.toLowerCase().includes(sokeTerm)) : koder;
+        const visade = filtrerade.slice(0, kodLimit);
+        const harFler = filtrerade.length > kodLimit;
+        if (visade.length === 0 && sokeTerm) {
+            kodDropdown.innerHTML = '<div style="color:#999;">Ingen kod hittades. Klicka på "Hantera struktur" för att lägga till koder.</div>';
+        } else {
+            let html = visade.map(k => `<div data-value="${escapeHtml(k)}">${escapeHtml(k)}</div>`).join('');
+            if (harFler) html += `<div class="scroll-control" id="kodVisaFler">➕ Visa fler (${filtrerade.length - kodLimit} fler)</div>`;
+            else if (filtrerade.length > 10) html += `<div class="scroll-control" id="kodVisaFarre">➖ Visa färre</div>`;
+            kodDropdown.innerHTML = html;
+        }
+        kodDropdown.querySelectorAll('div[data-value]').forEach(div => {
+            div.addEventListener('click', async () => {
+                const val = div.dataset.value;
+                kodSok.value = val;
+                kodValt.value = val;
+                kodDropdown.style.display = 'none';
+                await laddaBefintligaFiler();
+            });
+        });
+        const flerBtn = kodDropdown.querySelector('#kodVisaFler');
+        if (flerBtn) flerBtn.addEventListener('click', () => { kodLimit += 20; uppdateraKodDropdown(); });
+        const farreBtn = kodDropdown.querySelector('#kodVisaFarre');
+        if (farreBtn) farreBtn.addEventListener('click', () => { kodLimit = 10; uppdateraKodDropdown(); });
     }
     
     function laggTillDropdownEventer() {
@@ -447,81 +486,18 @@
         leverantorSok.addEventListener('input', () => { if (foretagValt.value && projektValt.value) { uppdateraLeverantörDropdown(); leverantorDropdown.style.display = 'block'; } });
         delSok.addEventListener('focus', () => { if (foretagValt.value && projektValt.value && leverantorValt.value) { uppdateraDelDropdown(); delDropdown.style.display = 'block'; } });
         delSok.addEventListener('input', () => { if (foretagValt.value && projektValt.value && leverantorValt.value) { uppdateraDelDropdown(); delDropdown.style.display = 'block'; } });
+        kodSok.addEventListener('focus', () => { if (foretagValt.value && projektValt.value && leverantorValt.value && delValt.value) { uppdateraKodDropdown(); kodDropdown.style.display = 'block'; } });
+        kodSok.addEventListener('input', () => { if (foretagValt.value && projektValt.value && leverantorValt.value && delValt.value) { uppdateraKodDropdown(); kodDropdown.style.display = 'block'; } });
         document.addEventListener('click', (e) => {
             if (!foretagSok.contains(e.target) && !foretagDropdown.contains(e.target)) foretagDropdown.style.display = 'none';
             if (!projektSok.contains(e.target) && !projektDropdown.contains(e.target)) projektDropdown.style.display = 'none';
             if (!leverantorSok.contains(e.target) && !leverantorDropdown.contains(e.target)) leverantorDropdown.style.display = 'none';
             if (!delSok.contains(e.target) && !delDropdown.contains(e.target)) delDropdown.style.display = 'none';
+            if (!kodSok.contains(e.target) && !kodDropdown.contains(e.target)) kodDropdown.style.display = 'none';
         });
     }
     
-    // ========== CLOUDINARY OCH FIREBASE ==========
-    async function laddaUppFilTillCloudinary(fil, foretag, projekt, leverantor, del, kod) {
-        const formData = new FormData();
-        const tid = Date.now();
-        const namn = fil.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
-        const offentligtId = `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(leverantor)}/${rensaForFirebase(del)}/${rensaForFirebase(kod)}/${tid}_${namn}`;
-        formData.append('file', fil);
-        formData.append('upload_preset', UPP_LADDNINGSPRESET);
-        formData.append('folder', `${HUVUDKATALOG}/${rensaForFirebase(foretag)}/${rensaForFirebase(projekt)}/${rensaForFirebase(leverantor)}/${rensaForFirebase(del)}/${rensaForFirebase(kod)}`);
-        formData.append('public_id', offentligtId);
-        formData.append('resource_type', 'auto');
-        try {
-            const svar = await fetch(`https://api.cloudinary.com/v1_1/${MOLN_NAMN}/auto/upload`, { method: 'POST', body: formData });
-            const data = await svar.json();
-            if (!svar.ok) throw new Error(data.error?.message || 'Uppladdning misslyckades');
-            let nedladdningsUrl = data.secure_url;
-            nedladdningsUrl += nedladdningsUrl.includes('?') ? '&fl_attachment' : '?fl_attachment';
-            return {
-                success: true,
-                offentligtId: data.public_id,
-                filnamn: fil.name,
-                storlek: fil.size,
-                datum: new Date().toISOString(),
-                visningsUrl: data.secure_url,
-                nedladdningsUrl: nedladdningsUrl,
-                typ: fil.name.split('.').pop().toLowerCase()
-            };
-        } catch (fel) {
-            console.error(fel);
-            return { success: false, namn: fil.name, fel: fel.message };
-        }
-    }
-    
-    async function sparaTillFirebase(foretag, projekt, leverantor, del, kod, beskrivning, filer) {
-        const sökväg = hamtaSokvag(foretag, projekt, leverantor, del, kod);
-        const referens = databas.ref(sökväg);
-        const snapshot = await referens.once('value');
-        let befintligData = snapshot.val() || {};
-        const filerObjekt = {};
-        for (let i = 0; i < filer.length; i++) {
-            const fil = filer[i];
-            const filId = `${Date.now()}_${i}_${fil.filnamn.replace(/[^a-zA-Z0-9]/g, '_')}`;
-            filerObjekt[filId] = {
-                filnamn: fil.filnamn,
-                storlek: fil.storlek,
-                datum: fil.datum,
-                visningsUrl: fil.visningsUrl,
-                nedladdningsUrl: fil.nedladdningsUrl,
-                typ: fil.typ
-            };
-        }
-        const befintligaFiler = befintligData.filer || {};
-        const allaFiler = { ...befintligaFiler, ...filerObjekt };
-        await referens.set({
-            beskrivning: beskrivning || befintligData.beskrivning || '',
-            foretag: foretag,
-            projekt: projekt,
-            leverantor: leverantor,
-            del: del,
-            kod: kod,
-            skapad: befintligData.skapad || new Date().toISOString(),
-            uppdaterad: new Date().toISOString(),
-            filer: allaFiler
-        });
-        return true;
-    }
-    
+    // Ladda befintliga filer
     async function laddaBefintligData(foretag, projekt, leverantor, del, kod) {
         if (!foretag || !projekt || !leverantor || !del || !kod) return null;
         const sökväg = hamtaSokvag(foretag, projekt, leverantor, del, kod);
@@ -534,7 +510,7 @@
         const projekt = projektValt.value;
         const leverantor = leverantorValt.value;
         const del = delValt.value;
-        const kod = kodInput.value.trim().toUpperCase();
+        const kod = kodValt.value;
         if (!foretag || !projekt || !leverantor || !del || !kod) {
             befintligaFilerKort.style.display = 'none';
             return;
@@ -570,7 +546,7 @@
             knapp.addEventListener('click', async () => {
                 const filId = knapp.dataset.filid;
                 if (confirm('Ta bort denna fil permanent?')) {
-                    await taBortEnskildFil(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value, kodInput.value.trim().toUpperCase(), filId);
+                    await taBortEnskildFil(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value, kodValt.value, filId);
                 }
             });
         });
@@ -593,86 +569,10 @@
     }
     
     taBortKodBtn.addEventListener('click', async () => {
-        await taBortHelaKoden(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value, kodInput.value.trim().toUpperCase());
+        await taBortHelaKoden(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value, kodValt.value);
     });
     
-    async function laddaUppFiler() {
-        const foretag = foretagValt.value;
-        const projekt = projektValt.value;
-        const leverantor = leverantorValt.value;
-        const del = delValt.value;
-        const kod = kodInput.value.trim().toUpperCase();
-        if (!foretag) { visaToast('❌ Välj företag', true); return; }
-        if (!projekt) { visaToast('❌ Välj projekt', true); return; }
-        if (!leverantor) { visaToast('❌ Välj leverantör', true); return; }
-        if (!del) { visaToast('❌ Välj del', true); return; }
-        if (!kod) { visaToast('❌ Ange kod', true); return; }
-        if (valdaFiler.length === 0) { visaToast('❌ Välj minst en fil', true); return; }
-        
-        laddaUppBtn.disabled = true;
-        framstegsBar.style.display = 'block';
-        framstegsFyllning.style.width = '0%';
-        let klara = 0;
-        const total = valdaFiler.length;
-        const uppladdadeFiler = [];
-        visaToast(`📤 Laddar upp ${total} fil(er)...`);
-        
-        for (let i = 0; i < valdaFiler.length; i++) {
-            const resultat = await laddaUppFilTillCloudinary(valdaFiler[i], foretag, projekt, leverantor, del, kod);
-            if (resultat.success) {
-                uppladdadeFiler.push(resultat);
-            } else {
-                visaToast(`❌ Misslyckades: ${resultat.namn}`, true);
-            }
-            klara++;
-            framstegsFyllning.style.width = `${(klara/total)*100}%`;
-        }
-        
-        if (uppladdadeFiler.length > 0) {
-            const beskrivning = beskrivningInput.value.trim();
-            await sparaTillFirebase(foretag, projekt, leverantor, del, kod, beskrivning, uppladdadeFiler);
-            
-            let basUrl = window.location.href;
-            if (basUrl.includes('index.html')) basUrl = basUrl.replace('index.html', '');
-            if (!basUrl.endsWith('/')) basUrl += '/';
-            const LANK = `${basUrl}viewer.html?company=${encodeURIComponent(foretag)}&project=${encodeURIComponent(projekt)}&supplier=${encodeURIComponent(leverantor)}&part=${encodeURIComponent(del)}&code=${encodeURIComponent(kod)}`;
-            
-            resultatContainer.style.display = 'block';
-            resultatContainer.innerHTML = `
-                <h4><i class="fas fa-check-circle" style="color:#10b981;"></i> Filer uppladdade!</h4>
-                <p>📁 ${uppladdadeFiler.length} fil(er) uppladdade</p>
-                <p>🏢 Företag: <strong>${escapeHtml(foretag)}</strong> | 📂 Projekt: <strong>${escapeHtml(projekt)}</strong> | 🚚 Leverantör: <strong>${escapeHtml(leverantor)}</strong> | 🧩 Del: <strong>${escapeHtml(del)}</strong> | 🏷️ Kod: <strong class="code-badge">${escapeHtml(kod)}</strong></p>
-                <hr>
-                <p><strong>🔗 LÄNK ATT KLISTRA IN I EXCEL/PDF:</strong></p>
-                <input type="text" id="lankInput" value="${LANK}" readonly style="width:100%; padding:0.8rem; border-radius:0.8rem; border:2px solid #cbdde9; margin:0.5rem 0; font-family: monospace;">
-                <button id="kopieraLankBtn" class="btn-primary"><i class="fas fa-copy"></i> Kopiera länk</button>
-                <a href="${LANK}" target="_blank" class="btn-secondary" style="text-decoration:none;"> Testa länk</a>
-            `;
-            const kopieraBtn = document.getElementById('kopieraLankBtn');
-            if (kopieraBtn) kopieraBtn.addEventListener('click', () => {
-                document.getElementById('lankInput').select();
-                document.execCommand('copy');
-                visaToast('📋 Länk kopierad');
-            });
-            await laddaBefintligaFiler();
-            visaToast(`✅ ${uppladdadeFiler.length} fil(er) uppladdade`);
-        }
-        valdaFiler = [];
-        renderaFilLista();
-        laddaUppBtn.disabled = false;
-        setTimeout(() => {
-            framstegsBar.style.display = 'none';
-            framstegsFyllning.style.width = '0%';
-        }, 1000);
-    }
-    
-    function rensaAllt() {
-        valdaFiler = [];
-        renderaFilLista();
-        filInput.value = '';
-        visaToast('🧹 Rensat');
-    }
-    
+    // Evenemang för knappar
     hanteraBtn.addEventListener('click', () => {
         visaModalHantering(uppdateraEfterAndring);
     });
@@ -685,44 +585,42 @@
         laddaBefintligaFiler();
     });
     
+    // Kopiera visningslänk
+    kopieraVisningsLankBtn.addEventListener('click', async () => {
+        const foretag = foretagValt.value;
+        const projekt = projektValt.value;
+        const leverantor = leverantorValt.value;
+        const del = delValt.value;
+        const kod = kodValt.value;
+        if (!foretag || !projekt || !leverantor || !del || !kod) {
+            visaToast('❌ Välj först företag, projekt, leverantör, del och kod', true);
+            return;
+        }
+        let basUrl = window.location.href;
+        if (basUrl.includes('index.html')) basUrl = basUrl.replace('index.html', '');
+        if (!basUrl.endsWith('/')) basUrl += '/';
+        const länk = `${basUrl}viewer.html?company=${encodeURIComponent(foretag)}&project=${encodeURIComponent(projekt)}&supplier=${encodeURIComponent(leverantor)}&part=${encodeURIComponent(del)}&code=${encodeURIComponent(kod)}`;
+        try {
+            await navigator.clipboard.writeText(länk);
+            visaToast('✅ Visningslänk kopierad till urklipp');
+        } catch (err) {
+            visaToast('❌ Kunde inte kopiera länk', true);
+        }
+    });
+    
     async function uppdateraEfterAndring() {
         await uppdateraForetagDropdown();
         if (foretagValt.value) await uppdateraProjektEfterForetag(foretagValt.value);
         if (foretagValt.value && projektValt.value) await uppdateraLeverantörEfterProjekt(foretagValt.value, projektValt.value);
         if (foretagValt.value && projektValt.value && leverantorValt.value) await uppdateraDelEfterLeverantör(foretagValt.value, projektValt.value, leverantorValt.value);
+        if (foretagValt.value && projektValt.value && leverantorValt.value && delValt.value) await uppdateraKodEfterDel(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value);
         await laddaBefintligaFiler();
     }
     
-    let dröjsmålTimer;
-    kodInput.addEventListener('input', () => {
-        clearTimeout(dröjsmålTimer);
-        dröjsmålTimer = setTimeout(() => laddaBefintligaFiler(), 500);
-    });
-    
-    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-    dropzone.addEventListener('drop', e => {
-        e.preventDefault();
-        dropzone.classList.remove('drag-over');
-        const filer = Array.from(e.dataTransfer.files);
-        valdaFiler.push(...filer);
-        renderaFilLista();
-    });
-    dropzone.addEventListener('click', () => filInput.click());
-    filInput.addEventListener('change', e => {
-        const filer = Array.from(e.target.files);
-        valdaFiler.push(...filer);
-        renderaFilLista();
-        filInput.value = '';
-    });
-    laddaUppBtn.addEventListener('click', laddaUppFiler);
-    rensaBtn.addEventListener('click', rensaAllt);
-    
     laggTillDropdownEventer();
     uppdateraForetagDropdown();
-    renderaFilLista();
-    console.log("✅ Admin redo – Firebase ansluten, redigeringsfunktioner aktiva");
+    console.log("✅ Admin redo – Firebase ansluten");
 </script>
-    <script src="folder-manager.js"></script>
+<script src="folder-manager.js"></script>
 </body>
 </html>
