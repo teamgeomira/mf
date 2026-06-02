@@ -1,546 +1,496 @@
 // ============================================================================
-// viewer-enhancer.js - Förbättrad visning av mappstruktur i viewer.html
-// Lägg till i viewer.html efter folder-manager.js:
-// <script src="viewer-enhancer.js"></script>
+// viewer-enhancer.js - Full fungerande vyhantering för mappstruktur
+// För användning med viewer.html och folder-manager.js
 // ============================================================================
 
 (function() {
-    // Vänta tills DOM är redo
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initViewerEnhancer);
-    } else {
-        initViewerEnhancer();
-    }
-
-    let aktuellVy = 'icon'; // icon, detail, list
+    'use strict';
+    
+    console.log('🚀 viewer-enhancer: Laddas...');
+    
+    let aktuellVy = localStorage.getItem('viewerPreferredView') || 'icon';
     let sökTerm = '';
-    let allFilesAndFolders = [];
-    let currentHierarchy = { foretag: '', projekt: '', leverantor: '', del: '', kod: '' };
-
-    function initViewerEnhancer() {
-        // Vänta på att folder-manager.js har skapat mappträdet
-        const observer = new MutationObserver(function(mutations, obs) {
+    let försök = 0;
+    const MAX_FÖRSÖK = 20;
+    
+    // Huvudfunktion - väntar på att folder-manager.js skapat trädet
+    function init() {
+        const checkInterval = setInterval(() => {
             const treeContainer = document.getElementById('viewerFolderTree');
-            if (treeContainer && treeContainer.innerHTML.length > 50) {
-                obs.disconnect();
-                console.log('🎯 viewer-enhancer: Mappträd hittat, initierar förbättringar');
-                enhanceViewer();
+            const contentDiv = document.getElementById('content');
+            
+            // Kontrollera om mappträdet finns OCH har blivit ifyllt
+            if (treeContainer && (treeContainer.children.length > 0 || contentDiv?.children.length > 0)) {
+                console.log('✅ viewer-enhancer: Mappträd hittat, initierar...');
+                clearInterval(checkInterval);
+                setupCompleteEnhancer();
             }
-        });
-        
-        observer.observe(document.body, { childList: true, subtree: true });
-        
-        // Timeout ifall trädet aldrig dyker upp
-        setTimeout(() => {
-            const treeContainer = document.getElementById('viewerFolderTree');
-            if (treeContainer && !document.getElementById('viewerEnhancerToolbar')) {
-                enhanceViewer();
+            
+            försök++;
+            if (försök >= MAX_FÖRSÖK) {
+                console.log('⚠️ viewer-enhancer: Max försök, initierar ändå...');
+                clearInterval(checkInterval);
+                setupCompleteEnhancer();
             }
-        }, 3000);
+        }, 500);
     }
-
-    function enhanceViewer() {
-        // Hämta hierarki från URL eller från sidan
-        const urlParams = new URLSearchParams(window.location.search);
-        currentHierarchy = {
-            foretag: urlParams.get('company') || '',
-            projekt: urlParams.get('project') || '',
-            leverantor: urlParams.get('supplier') || '',
-            del: urlParams.get('part') || '',
-            kod: urlParams.get('code') || ''
-        };
+    
+    function setupCompleteEnhancer() {
+        // Skapa verktygsfältet
+        createEnhancedToolbar();
         
-        // Om ingen hierarki finns i URL, försök hämta från sidans hierarkiDisplay
-        if (!currentHierarchy.foretag) {
-            const hierarchyDisplay = document.getElementById('hierarchyDisplay');
-            if (hierarchyDisplay) {
-                const text = hierarchyDisplay.innerText;
-                const foretagMatch = text.match(/Företag:\s*([^\|]+)/);
-                const projektMatch = text.match(/Projekt:\s*([^\|]+)/);
-                const leverantorMatch = text.match(/Leverantör:\s*([^\|]+)/);
-                const delMatch = text.match(/Del:\s*([^\|]+)/);
-                const kodMatch = text.match(/Kod:\s*([^\|]+)/);
-                if (foretagMatch) currentHierarchy.foretag = foretagMatch[1].trim();
-                if (projektMatch) currentHierarchy.projekt = projektMatch[1].trim();
-                if (leverantorMatch) currentHierarchy.leverantor = leverantorMatch[1].trim();
-                if (delMatch) currentHierarchy.del = delMatch[1].trim();
-                if (kodMatch) currentHierarchy.kod = kodMatch[1].trim();
-            }
-        }
-
-        // Skapa verktygsfältet om det inte redan finns
-        if (!document.getElementById('viewerEnhancerToolbar')) {
-            createToolbar();
-        }
+        // Applicera vy på ALLA filer (inklusive i mappar)
+        applyViewToAllFiles(aktuellVy);
         
-        // Extrahera alla filer och mappar från mappträdet
-        extractFilesAndFolders();
+        // Lägg till CSS
+        addCompleteStyles();
         
-        // Applicera aktuell vy och sökning
-        applyViewAndSearch();
+        // Uppdatera statistik
+        updateStatistics();
         
-        // Lägg till observer för att uppdatera när trädet ändras (t.ex. vid expandering)
-        const treeContainer = document.getElementById('viewerFolderTree');
-        if (treeContainer) {
-            const expandObserver = new MutationObserver(function() {
-                extractFilesAndFolders();
-                applyViewAndSearch();
-            });
-            expandObserver.observe(treeContainer, { childList: true, subtree: true, attributes: true });
-        }
+        // Observera förändringar i DOM (när användaren expanderar mappar)
+        observeDOMChanges();
+        
+        console.log('✅ viewer-enhancer: Klar! Aktuell vy:', aktuellVy);
     }
-
-    function createToolbar() {
+    
+    function createEnhancedToolbar() {
+        // Hitta var verktygsfältet ska placeras
         const treeContainer = document.getElementById('viewerFolderTree');
         if (!treeContainer) return;
         
-        // Skapa verktygsfält
+        // Ta bort gammalt verktygsfält om det finns
+        const oldToolbar = document.getElementById('enhancedViewerToolbar');
+        if (oldToolbar) oldToolbar.remove();
+        
+        // Skapa nytt verktygsfält
         const toolbar = document.createElement('div');
-        toolbar.id = 'viewerEnhancerToolbar';
+        toolbar.id = 'enhancedViewerToolbar';
         toolbar.style.cssText = `
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             gap: 1rem;
-            margin-bottom: 1rem;
-            padding: 0.75rem;
-            background: #ffffff;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.25rem;
+            background: white;
             border-radius: 1rem;
             border: 1px solid #e2edf5;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         `;
         
-        // Sökfält
-        const searchContainer = document.createElement('div');
-        searchContainer.style.cssText = 'flex: 2; min-width: 200px;';
-        searchContainer.innerHTML = `
-            <div style="display: flex; gap: 0.5rem;">
-                <div style="position: relative; flex: 1;">
-                    <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9bb3c9;"></i>
-                    <input type="text" id="viewerSearchInput" placeholder="Sök efter filer eller mappar..." 
-                           style="width: 100%; padding: 0.6rem 0.6rem 0.6rem 2.2rem; border: 2px solid #cbdde9; border-radius: 2rem; font-size: 0.85rem;">
+        // Söksektion
+        toolbar.innerHTML = `
+            <div style="flex: 2; min-width: 200px;">
+                <div style="position: relative;">
+                    <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    <input type="text" id="enhancedSearchInput" placeholder="Sök efter filer..." 
+                           style="width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; border: 2px solid #e2edf5; border-radius: 2rem; font-size: 0.85rem; outline: none; transition: border 0.2s;">
                 </div>
-                <button id="clearSearchBtn" class="btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.8rem;">
-                    <i class="fas fa-times"></i> Rensa
+            </div>
+            <div style="display: flex; gap: 0.5rem; background: #f1f5f9; padding: 0.25rem; border-radius: 2rem;">
+                <button class="enhanced-view-btn" data-view="icon" title="Ikonvy" style="padding: 0.5rem 1.2rem; border-radius: 1.5rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                    <i class="fas fa-th-large"></i> <span>Ikoner</span>
+                </button>
+                <button class="enhanced-view-btn" data-view="detail" title="Detaljvy" style="padding: 0.5rem 1.2rem; border-radius: 1.5rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                    <i class="fas fa-list"></i> <span>Detaljer</span>
+                </button>
+                <button class="enhanced-view-btn" data-view="list" title="Listvy" style="padding: 0.5rem 1.2rem; border-radius: 1.5rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                    <i class="fas fa-bars"></i> <span>Lista</span>
                 </button>
             </div>
+            <div id="enhancedStats" style="display: flex; gap: 1rem; align-items: center; font-size: 0.8rem;">
+                <span style="background: #eef2ff; padding: 0.3rem 0.8rem; border-radius: 2rem; color: #2c7cb6;">
+                    <i class="fas fa-folder"></i> <span id="folderCount">0</span> mappar
+                </span>
+                <span style="background: #eef2ff; padding: 0.3rem 0.8rem; border-radius: 2rem; color: #10b981;">
+                    <i class="fas fa-file"></i> <span id="fileCount">0</span> filer
+                </span>
+            </div>
         `;
-        
-        // Vyväljare
-        const viewContainer = document.createElement('div');
-        viewContainer.style.cssText = 'display: flex; gap: 0.5rem; background: #f0f6fc; padding: 0.3rem; border-radius: 2rem;';
-        viewContainer.innerHTML = `
-            <button class="view-btn" data-view="icon" title="Ikonvy" style="padding: 0.4rem 1rem; border-radius: 2rem; border: none; cursor: pointer; background: #2c7cb6; color: white;">
-                <i class="fas fa-th-large"></i> Ikoner
-            </button>
-            <button class="view-btn" data-view="detail" title="Detaljvy" style="padding: 0.4rem 1rem; border-radius: 2rem; border: none; cursor: pointer; background: #e2e8f0; color: #2c3e50;">
-                <i class="fas fa-list"></i> Detaljer
-            </button>
-            <button class="view-btn" data-view="list" title="Listvy" style="padding: 0.4rem 1rem; border-radius: 2rem; border: none; cursor: pointer; background: #e2e8f0; color: #2c3e50;">
-                <i class="fas fa-bars"></i> Lista
-            </button>
-        `;
-        
-        // Statistik
-        const statsContainer = document.createElement('div');
-        statsContainer.id = 'viewerStats';
-        statsContainer.style.cssText = 'font-size: 0.75rem; color: #6c8dab; background: #f0f6fc; padding: 0.3rem 0.8rem; border-radius: 2rem;';
-        statsContainer.innerHTML = '<i class="fas fa-info-circle"></i> <span id="fileCount">0</span> filer';
-        
-        toolbar.appendChild(searchContainer);
-        toolbar.appendChild(viewContainer);
-        toolbar.appendChild(statsContainer);
         
         // Infoga före mappträdet
         treeContainer.parentNode.insertBefore(toolbar, treeContainer);
         
-        // Event listeners
-        const searchInput = document.getElementById('viewerSearchInput');
-        searchInput.addEventListener('input', (e) => {
-            sökTerm = e.target.value.toLowerCase();
-            applyViewAndSearch();
-        });
-        
-        document.getElementById('clearSearchBtn')?.addEventListener('click', () => {
-            searchInput.value = '';
-            sökTerm = '';
-            applyViewAndSearch();
-        });
-        
-        document.querySelectorAll('.view-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                aktuellVy = btn.dataset.view;
-                updateViewButtons();
-                applyViewAndSearch();
+        // Sökfunktion
+        const searchInput = document.getElementById('enhancedSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                sökTerm = e.target.value.toLowerCase();
+                performSearch();
             });
-        });
+            
+            // Fokus-effekt
+            searchInput.addEventListener('focus', function() {
+                this.style.borderColor = '#2c7cb6';
+            });
+            searchInput.addEventListener('blur', function() {
+                this.style.borderColor = '#e2edf5';
+            });
+        }
         
-        // Lägg till CSS för vyerna
-        addViewStyles();
-    }
-    
-    function updateViewButtons() {
-        document.querySelectorAll('.view-btn').forEach(btn => {
+        // Vy-knappar
+        document.querySelectorAll('.enhanced-view-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const vy = this.dataset.view;
+                aktuellVy = vy;
+                localStorage.setItem('viewerPreferredView', vy);
+                applyViewToAllFiles(vy);
+                
+                // Uppdatera knapparnas utseende
+                document.querySelectorAll('.enhanced-view-btn').forEach(b => {
+                    if (b.dataset.view === vy) {
+                        b.style.background = '#2c7cb6';
+                        b.style.color = 'white';
+                    } else {
+                        b.style.background = 'transparent';
+                        b.style.color = '#475569';
+                    }
+                });
+            });
+            
+            // Sätt initialt utseende
             if (btn.dataset.view === aktuellVy) {
                 btn.style.background = '#2c7cb6';
                 btn.style.color = 'white';
             } else {
-                btn.style.background = '#e2e8f0';
-                btn.style.color = '#2c3e50';
+                btn.style.background = 'transparent';
+                btn.style.color = '#475569';
             }
         });
     }
     
-    function addViewStyles() {
-        if (document.getElementById('viewerEnhancerStyles')) return;
+    function applyViewToAllFiles(vy) {
+        // Hitta alla filkort - både i roten och inuti mappar
+        const allFileCards = document.querySelectorAll('.file-card, [class*="file-card"]');
         
-        const style = document.createElement('style');
-        style.id = 'viewerEnhancerStyles';
-        style.textContent = `
-            /* Ikonvy - gallerivy */
-            .view-icon .files-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                gap: 1rem;
-            }
-            
-            .view-icon .file-card {
-                text-align: center;
-                padding: 1rem;
-                transition: transform 0.2s;
-            }
-            
-            .view-icon .file-card:hover {
-                transform: translateY(-3px);
-            }
-            
-            .view-icon .file-icon {
-                font-size: 3rem;
-                margin-bottom: 0.5rem;
-            }
-            
-            .view-icon .file-meta {
-                justify-content: center;
-            }
-            
-            /* Detaljvy - tabelliknande */
-            .view-detail .files-grid {
-                display: block;
-            }
-            
-            .view-detail .file-card {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                padding: 0.8rem;
-                margin-bottom: 0.3rem;
-                border-radius: 0.6rem;
-            }
-            
-            .view-detail .file-icon {
-                font-size: 1.4rem;
-                margin-bottom: 0;
-                min-width: 40px;
-                text-align: center;
-            }
-            
-            .view-detail .file-name {
-                flex: 3;
-                min-width: 150px;
-                margin-bottom: 0;
-            }
-            
-            .view-detail .file-meta {
-                flex: 1;
-                margin-bottom: 0;
-                justify-content: flex-end;
-            }
-            
-            .view-detail .file-actions {
-                flex: 0;
-            }
-            
-            /* Listvy - enkel rad */
-            .view-list .files-grid {
-                display: block;
-            }
-            
-            .view-list .file-card {
-                display: flex;
-                align-items: center;
-                gap: 0.8rem;
-                padding: 0.5rem 0.8rem;
-                margin-bottom: 0.2rem;
-                background: transparent;
-                border: none;
-                border-bottom: 1px solid #e2edf5;
-                box-shadow: none;
-            }
-            
-            .view-list .file-card:hover {
-                background: #f0f6fc;
-                transform: none;
-            }
-            
-            .view-list .file-icon {
-                font-size: 1.2rem;
-                margin-bottom: 0;
-                min-width: 30px;
-            }
-            
-            .view-list .file-name {
-                flex: 1;
-                margin-bottom: 0;
-                font-size: 0.85rem;
-            }
-            
-            .view-list .file-meta {
-                margin-bottom: 0;
-                font-size: 0.7rem;
-            }
-            
-            .view-list .file-actions {
-                margin-left: auto;
-            }
-            
-            /* Sökmarkering */
-            .search-highlight {
-                background-color: #fef3c7;
-                border-radius: 0.2rem;
-                padding: 0 0.2rem;
-            }
-            
-            /* Mappheader i olika vyer */
-            .folder-header {
-                transition: background 0.2s;
-            }
-            
-            .folder-header:hover {
-                background: #e6f4fe !important;
-            }
-            
-            /* Folder content animation */
-            .folder-content {
-                transition: all 0.2s ease;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    function extractFilesAndFolders() {
-        const treeContainer = document.getElementById('viewerFolderTree');
-        if (!treeContainer) return;
+        console.log(`🎨 Applicerar vy "${vy}" på ${allFileCards.length} filer`);
         
-        allFilesAndFolders = [];
+        allFileCards.forEach(card => {
+            // Ta bort alla vy-klasser
+            card.classList.remove('vy-icon-mode', 'vy-detail-mode', 'vy-list-mode');
+            card.classList.add(`vy-${vy}-mode`);
+            
+            // Applicera stil baserat på vy
+            switch(vy) {
+                case 'icon':
+                    applyIconStyle(card);
+                    break;
+                case 'detail':
+                    applyDetailStyle(card);
+                    break;
+                case 'list':
+                    applyListStyle(card);
+                    break;
+            }
+        });
         
-        // Extrahera från rot (ingen mapp)
-        const rootDiv = treeContainer.querySelector('div > div:first-child');
-        if (rootDiv) {
-            const rootTitle = rootDiv.querySelector('div[style*="font-weight: 600"]');
-            if (rootTitle && rootTitle.innerText.includes('Rot')) {
-                const fileItems = rootDiv.querySelectorAll('.file-item-in-tree, .file-card, div[style*="display: flex; justify-content: space-between"]');
-                fileItems.forEach(item => {
-                    if (item.querySelector('.fa-eye, .btn-view')) {
-                        const nameEl = item.querySelector('span:first-child, .file-name');
-                        const name = nameEl ? nameEl.innerText.trim() : '';
-                        const icon = item.querySelector('i');
-                        const iconClass = icon ? icon.className : '';
-                        allFilesAndFolders.push({
-                            type: 'file',
-                            name: name,
-                            element: item,
-                            parent: 'root',
-                            icon: iconClass
-                        });
-                    }
-                });
+        // Uppdatera grid-container för ikonvy
+        const filesGrid = document.querySelector('.files-grid');
+        if (filesGrid) {
+            if (vy === 'icon') {
+                filesGrid.style.display = 'grid';
+                filesGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+                filesGrid.style.gap = '1.5rem';
+            } else {
+                filesGrid.style.display = 'block';
             }
         }
         
-        // Extrahera från mappar
-        const folderItems = treeContainer.querySelectorAll('.folder-item');
-        folderItems.forEach(folder => {
-            const header = folder.querySelector('.folder-header');
-            const folderNameSpan = header ? header.querySelector('strong') : null;
-            const folderName = folderNameSpan ? folderNameSpan.innerText.replace('📁', '').trim() : '';
-            
-            allFilesAndFolders.push({
-                type: 'folder',
-                name: folderName,
-                element: folder,
-                parent: null,
-                icon: 'fa-folder'
-            });
-            
-            const contentDiv = folder.querySelector('div[id^="viewerFolder_"]');
-            if (contentDiv) {
-                const fileItems = contentDiv.querySelectorAll('.file-item-in-tree, div[style*="display: flex; justify-content: space-between"]');
-                fileItems.forEach(item => {
-                    if (item.querySelector('.fa-eye, .btn-view')) {
-                        const nameEl = item.querySelector('span:first-child, .file-name');
-                        const name = nameEl ? nameEl.innerText.trim() : '';
-                        const icon = item.querySelector('i');
-                        const iconClass = icon ? icon.className : '';
-                        allFilesAndFolders.push({
-                            type: 'file',
-                            name: name,
-                            element: item,
-                            parent: folderName,
-                            icon: iconClass
-                        });
-                    }
-                });
+        // Uppdatera mappheaders utseende
+        updateFolderHeaders(vy);
+    }
+    
+    function applyIconStyle(card) {
+        card.style.textAlign = 'center';
+        card.style.padding = '1rem';
+        card.style.display = 'block';
+        
+        const icon = card.querySelector('.file-icon, [class*="file-icon"]');
+        if (icon) {
+            icon.style.fontSize = '3rem';
+            icon.style.marginBottom = '0.5rem';
+            icon.style.textAlign = 'center';
+        }
+        
+        const name = card.querySelector('.file-name, [class*="file-name"]');
+        if (name) {
+            name.style.fontSize = '0.85rem';
+            name.style.fontWeight = '500';
+            name.style.marginBottom = '0.25rem';
+            name.style.wordBreak = 'break-word';
+        }
+        
+        const meta = card.querySelector('.file-meta, [class*="file-meta"]');
+        if (meta) {
+            meta.style.justifyContent = 'center';
+            meta.style.fontSize = '0.7rem';
+            meta.style.marginBottom = '0.5rem';
+        }
+        
+        const actions = card.querySelector('.file-actions, [class*="file-actions"]');
+        if (actions) {
+            actions.style.justifyContent = 'center';
+        }
+    }
+    
+    function applyDetailStyle(card) {
+        card.style.display = 'flex';
+        card.style.alignItems = 'center';
+        card.style.justifyContent = 'space-between';
+        card.style.flexWrap = 'wrap';
+        card.style.gap = '0.5rem';
+        card.style.padding = '0.75rem 1rem';
+        card.style.textAlign = 'left';
+        
+        const icon = card.querySelector('.file-icon, [class*="file-icon"]');
+        if (icon) {
+            icon.style.fontSize = '1.5rem';
+            icon.style.marginBottom = '0';
+            icon.style.minWidth = '40px';
+        }
+        
+        const name = card.querySelector('.file-name, [class*="file-name"]');
+        if (name) {
+            name.style.flex = '2';
+            name.style.marginBottom = '0';
+            name.style.fontSize = '0.85rem';
+        }
+        
+        const meta = card.querySelector('.file-meta, [class*="file-meta"]');
+        if (meta) {
+            meta.style.display = 'flex';
+            meta.style.gap = '1rem';
+            meta.style.flex = '1';
+            meta.style.marginBottom = '0';
+            meta.style.justifyContent = 'flex-end';
+        }
+        
+        const actions = card.querySelector('.file-actions, [class*="file-actions"]');
+        if (actions) {
+            actions.style.marginLeft = 'auto';
+        }
+    }
+    
+    function applyListStyle(card) {
+        card.style.display = 'flex';
+        card.style.alignItems = 'center';
+        card.style.gap = '0.75rem';
+        card.style.padding = '0.4rem 0.8rem';
+        card.style.marginBottom = '0.1rem';
+        card.style.background = 'transparent';
+        card.style.border = 'none';
+        card.style.borderBottom = '1px solid #eef3fc';
+        card.style.boxShadow = 'none';
+        
+        const icon = card.querySelector('.file-icon, [class*="file-icon"]');
+        if (icon) {
+            icon.style.fontSize = '1.1rem';
+            icon.style.marginBottom = '0';
+            icon.style.minWidth = '28px';
+        }
+        
+        const name = card.querySelector('.file-name, [class*="file-name"]');
+        if (name) {
+            name.style.flex = '1';
+            name.style.marginBottom = '0';
+            name.style.fontSize = '0.85rem';
+        }
+        
+        const meta = card.querySelector('.file-meta, [class*="file-meta"]');
+        if (meta) {
+            meta.style.fontSize = '0.7rem';
+            meta.style.marginBottom = '0';
+            meta.style.gap = '0.5rem';
+        }
+        
+        const actions = card.querySelector('.file-actions, [class*="file-actions"]');
+        if (actions) {
+            actions.style.marginLeft = 'auto';
+        }
+    }
+    
+    function updateFolderHeaders(vy) {
+        const folderHeaders = document.querySelectorAll('.folder-header');
+        folderHeaders.forEach(header => {
+            if (vy === 'icon') {
+                header.style.padding = '0.75rem 1rem';
+                header.style.fontSize = '1rem';
+            } else if (vy === 'detail') {
+                header.style.padding = '0.6rem 1rem';
+                header.style.fontSize = '0.95rem';
+            } else {
+                header.style.padding = '0.4rem 0.8rem';
+                header.style.fontSize = '0.9rem';
             }
         });
     }
     
-    function applyViewAndSearch() {
-        const treeContainer = document.getElementById('viewerFolderTree');
-        if (!treeContainer) return;
-        
-        // Byt vy-klass på container
-        treeContainer.classList.remove('view-icon', 'view-detail', 'view-list');
-        treeContainer.classList.add(`view-${aktuellVy}`);
-        
-        // Rensa sökmarkeringar och filter
-        let synligaFiler = 0;
-        let synligaMappar = 0;
-        
-        // För varje mapp och fil
-        const folderItems = treeContainer.querySelectorAll('.folder-item');
-        folderItems.forEach(folder => {
-            const header = folder.querySelector('.folder-header');
-            const folderNameSpan = header ? header.querySelector('strong') : null;
-            const folderName = folderNameSpan ? folderNameSpan.innerText.replace('📁', '').trim() : '';
-            
-            // Kolla om mappen matchar sökning (om någon fil i mappen matchar)
-            let folderHasMatch = false;
-            let filesInFolder = [];
-            
-            const contentDiv = folder.querySelector('div[id^="viewerFolder_"]');
-            if (contentDiv) {
-                const fileItems = contentDiv.querySelectorAll('.file-item-in-tree, div[style*="display: flex; justify-content: space-between"]');
-                fileItems.forEach(item => {
-                    if (item.querySelector('.fa-eye, .btn-view')) {
-                        const nameEl = item.querySelector('span:first-child, .file-name');
-                        const fileName = nameEl ? nameEl.innerText.trim() : '';
-                        const matches = !sökTerm || fileName.toLowerCase().includes(sökTerm);
-                        filesInFolder.push({ item, matches, fileName });
-                        if (matches) folderHasMatch = true;
-                    }
-                });
-            }
-            
-            // Visa/dölj mapp baserat på om den har matchande filer eller mappnamn matchar
-            const folderMatches = !sökTerm || folderName.toLowerCase().includes(sökTerm);
-            const showFolder = !sökTerm || folderMatches || folderHasMatch;
-            
-            if (showFolder) {
+    function performSearch() {
+        if (!sökTerm) {
+            // Visa alla filer
+            document.querySelectorAll('.file-card, [class*="file-card"]').forEach(file => {
+                file.style.display = '';
+                // Återställ markering
+                const nameEl = file.querySelector('.file-name, [class*="file-name"]');
+                if (nameEl) nameEl.innerHTML = nameEl.innerText;
+            });
+            document.querySelectorAll('.folder-item').forEach(folder => {
                 folder.style.display = '';
-                synligaMappar++;
+            });
+            updateStatistics();
+            return;
+        }
+        
+        let synligaFiler = 0;
+        
+        // Filtrera filer
+        document.querySelectorAll('.file-card, [class*="file-card"]').forEach(file => {
+            const nameEl = file.querySelector('.file-name, [class*="file-name"]');
+            const fileName = nameEl ? nameEl.innerText.toLowerCase() : '';
+            
+            if (fileName.includes(sökTerm)) {
+                file.style.display = '';
+                synligaFiler++;
                 
-                // Markera mappnamn om det matchar
-                if (folderNameSpan && sökTerm && folderName.toLowerCase().includes(sökTerm)) {
-                    folderNameSpan.innerHTML = highlightText(folderName, sökTerm);
-                } else if (folderNameSpan) {
-                    folderNameSpan.innerHTML = folderName;
+                // Markera sökterm
+                if (nameEl) {
+                    const originalText = nameEl.innerText;
+                    const regex = new RegExp(`(${escapeRegExp(sökTerm)})`, 'gi');
+                    nameEl.innerHTML = originalText.replace(regex, '<span style="background-color: #fef3c7; padding: 0 2px; border-radius: 3px;">$1</span>');
                 }
-                
-                // Hantera filer i mappen
-                filesInFolder.forEach(({ item, matches, fileName }) => {
-                    if (!sökTerm || matches) {
-                        item.style.display = '';
-                        synligaFiler++;
-                        // Markera filnamn
-                        const nameEl = item.querySelector('span:first-child, .file-name');
-                        if (nameEl && sökTerm && fileName.toLowerCase().includes(sökTerm)) {
-                            nameEl.innerHTML = highlightText(fileName, sökTerm);
-                        } else if (nameEl) {
-                            nameEl.innerHTML = fileName;
-                        }
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
+            } else {
+                file.style.display = 'none';
+                if (nameEl) nameEl.innerHTML = nameEl.innerText;
+            }
+        });
+        
+        // Hantera mappar - visa bara de som har synliga filer eller matchande namn
+        document.querySelectorAll('.folder-item').forEach(folder => {
+            const folderNameEl = folder.querySelector('.folder-header strong, .folder-header span:first-child');
+            const folderName = folderNameEl ? folderNameEl.innerText.toLowerCase() : '';
+            const hasVisibleFiles = folder.querySelectorAll('.file-card[style="display: block"], .file-card[style="display: flex"], .file-card:not([style*="display: none"])').length > 0;
+            
+            if (folderName.includes(sökTerm) || hasVisibleFiles) {
+                folder.style.display = '';
             } else {
                 folder.style.display = 'none';
             }
         });
         
-        // Hantera rotfiler
-        const rootDiv = treeContainer.querySelector('div > div:first-child');
-        if (rootDiv) {
-            const rootTitle = rootDiv.querySelector('div[style*="font-weight: 600"]');
-            const fileContainer = rootDiv.querySelector('div[style*="margin-left: 1rem;"], div:last-child');
-            if (fileContainer) {
-                const fileItems = fileContainer.querySelectorAll('.file-item-in-tree, div[style*="display: flex; justify-content: space-between"]');
-                let anyRootFileVisible = false;
-                fileItems.forEach(item => {
-                    if (item.querySelector('.fa-eye, .btn-view')) {
-                        const nameEl = item.querySelector('span:first-child, .file-name');
-                        const fileName = nameEl ? nameEl.innerText.trim() : '';
-                        const matches = !sökTerm || fileName.toLowerCase().includes(sökTerm);
-                        if (matches) {
-                            item.style.display = '';
-                            synligaFiler++;
-                            anyRootFileVisible = true;
-                            if (nameEl && sökTerm) {
-                                nameEl.innerHTML = highlightText(fileName, sökTerm);
-                            } else if (nameEl) {
-                                nameEl.innerHTML = fileName;
-                            }
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    }
-                });
-                
-                // Visa/dölj rotsektionen
-                if (rootDiv) {
-                    if (!sökTerm || anyRootFileVisible) {
-                        rootDiv.style.display = '';
-                    } else {
-                        rootDiv.style.display = 'none';
-                    }
-                }
-            }
-        }
-        
         // Uppdatera statistik
         const fileCountSpan = document.getElementById('fileCount');
-        if (fileCountSpan) {
-            fileCountSpan.textContent = synligaFiler;
-        }
+        if (fileCountSpan) fileCountSpan.textContent = synligaFiler;
+    }
+    
+    function updateStatistics() {
+        const totalFiles = document.querySelectorAll('.file-card, [class*="file-card"]').length;
+        const totalFolders = document.querySelectorAll('.folder-item').length;
         
-        // Visa meddelande om inga resultat
-        let noResultsMsg = treeContainer.querySelector('.no-search-results');
-        if (synligaFiler === 0 && synligaMappar === 0 && sökTerm) {
-            if (!noResultsMsg) {
-                noResultsMsg = document.createElement('div');
-                noResultsMsg.className = 'no-search-results';
-                noResultsMsg.style.cssText = 'text-align: center; padding: 2rem; color: #999;';
-                noResultsMsg.innerHTML = `<i class="fas fa-search fa-2x" style="margin-bottom: 0.5rem; display: block;"></i>Inga filer eller mappar matchar "${escapeHtml(sökTerm)}"`;
-                treeContainer.appendChild(noResultsMsg);
+        const fileSpan = document.getElementById('fileCount');
+        const folderSpan = document.getElementById('folderCount');
+        
+        if (fileSpan) fileSpan.textContent = totalFiles;
+        if (folderSpan) folderSpan.textContent = totalFolders;
+    }
+    
+    function observeDOMChanges() {
+        // Observera när nya filkort läggs till (när användaren expanderar mappar)
+        const observer = new MutationObserver(function(mutations) {
+            let needsUpdate = false;
+            mutations.forEach(mutation => {
+                if (mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === 1 && (node.classList?.contains('file-card') || node.querySelector?.('.file-card'))) {
+                            needsUpdate = true;
+                        }
+                    });
+                }
+            });
+            
+            if (needsUpdate) {
+                // Applicera aktuell vy på nya filer
+                setTimeout(() => {
+                    applyViewToAllFiles(aktuellVy);
+                    if (sökTerm) performSearch();
+                    updateStatistics();
+                }, 100);
             }
-        } else if (noResultsMsg) {
-            noResultsMsg.remove();
-        }
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
     }
     
-    function highlightText(text, searchTerm) {
-        if (!searchTerm) return text;
-        const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
-        return text.replace(regex, '<span class="search-highlight">$1</span>');
-    }
-    
-    function escapeRegex(str) {
+    function escapeRegExp(str) {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
     
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    function addCompleteStyles() {
+        if (document.getElementById('completeViewerStyles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'completeViewerStyles';
+        style.textContent = `
+            /* Ikonvy */
+            .vy-icon-mode {
+                transition: all 0.2s ease;
+            }
+            
+            .vy-icon-mode:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            }
+            
+            /* Detaljvy */
+            .vy-detail-mode {
+                transition: background 0.2s;
+            }
+            
+            .vy-detail-mode:hover {
+                background: #f8fafc;
+            }
+            
+            /* Listvy */
+            .vy-list-mode {
+                transition: background 0.2s;
+            }
+            
+            .vy-list-mode:hover {
+                background: #f1f5f9;
+            }
+            
+            /* Förbättrad mappheader */
+            .folder-header {
+                cursor: pointer;
+                transition: background 0.2s;
+                border-radius: 0.8rem;
+            }
+            
+            .folder-header:hover {
+                background: #f1f5f9 !important;
+            }
+            
+            /* Animation för folder content */
+            .folder-content {
+                transition: all 0.2s ease;
+            }
+            
+            /* Responsiv design */
+            @media (max-width: 768px) {
+                .files-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Starta allt
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
     
 })();
