@@ -497,20 +497,6 @@
 
                 let html = `<div style="margin-bottom: 0.5rem;"><strong><i class="fas fa-folder-tree"></i> Mappstruktur</strong></div>`;
 
-                // Rot (filer utan mapp)
-                html += `<div style="margin-bottom: 1rem;">
-                            <div style="font-weight: 600; margin-bottom: 0.3rem;"><i class="fas fa-database"></i> 📂 Rot (ingen mapp)</div>`;
-                if (Object.keys(rotFiler).length === 0) {
-                    html += `<div style="margin-left: 1rem; color: #999;">Inga filer i roten</div>`;
-                } else {
-                    html += `<div style="margin-left: 1rem;">`;
-                    for (const [filId, fil] of Object.entries(rotFiler)) {
-                        html += visaFilRadViewer(fil);
-                    }
-                    html += `</div>`;
-                }
-                html += `</div>`;
-
                 // Mappar
                 if (Object.keys(mappar).length > 0) {
                     for (const [mappId, mappData] of Object.entries(mappar)) {
