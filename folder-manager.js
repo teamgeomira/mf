@@ -1,9 +1,18 @@
-// folder-manager.js - Versión adaptada para tu estructura jerárquica
+// folder-manager.js - Versión corregida
 // Agregar al final del <body> en index.html y viewer.html
 
 (function() {
     // ==================== DETECTAR MODO ====================
     const isAdminMode = document.querySelector('#laddaUppBtn, .dropzone') !== null;
+    
+    // Función para obtener la referencia correcta de Firebase
+    function getDatabase() {
+        // Intentar con diferentes nombres de variable global
+        if (window.databas) return window.databas;
+        if (window.database) return window.database;
+        if (window.firebase && window.firebase.database) return window.firebase.database();
+        return null;
+    }
     
     if (isAdminMode) {
         initAdminFolderSystem();
@@ -22,8 +31,16 @@
     
     async function setupAdminUI() {
         // Esperar a que existan los elementos necesarios
-        const foretagInput = document.getElementById('foretagValt');
-        if (!foretagInput) {
+        const foretagValt = document.getElementById('foretagValt');
+        if (!foretagValt) {
+            setTimeout(setupAdminUI, 500);
+            return;
+        }
+        
+        // Esperar a que Firebase esté disponible
+        const db = getDatabase();
+        if (!db) {
+            console.log('Esperando Firebase...');
             setTimeout(setupAdminUI, 500);
             return;
         }
@@ -75,17 +92,17 @@
         }
         
         // Escuchar cambios en los selectores
-        const foretagValt = document.getElementById('foretagValt');
-        const projektValt = document.getElementById('projektValt');
-        const leverantorValt = document.getElementById('leverantorValt');
-        const delValt = document.getElementById('delValt');
+        const foretagHidden = document.getElementById('foretagValt');
+        const projektHidden = document.getElementById('projektValt');
+        const leverantorHidden = document.getElementById('leverantorValt');
+        const delHidden = document.getElementById('delValt');
         const kodInput = document.getElementById('kodInput');
         
         const updateFolders = async () => {
-            const foretag = foretagValt?.value;
-            const projekt = projektValt?.value;
-            const leverantor = leverantorValt?.value;
-            const del = delValt?.value;
+            const foretag = foretagHidden?.value;
+            const projekt = projektHidden?.value;
+            const leverantor = leverantorHidden?.value;
+            const del = delHidden?.value;
             const kod = kodInput?.value.trim().toUpperCase();
             
             if (foretag && projekt && leverantor && del && kod) {
@@ -98,21 +115,38 @@
             }
         };
         
-        foretagValt?.addEventListener('change', updateFolders);
-        projektValt?.addEventListener('change', updateFolders);
-        leverantorValt?.addEventListener('change', updateFolders);
-        delValt?.addEventListener('change', updateFolders);
+        // También escuchar cambios en los inputs visibles
+        const foretagSok = document.getElementById('foretagSok');
+        const projektSok = document.getElementById('projektSok');
+        const leverantorSok = document.getElementById('leverantorSok');
+        const delSok = document.getElementById('delSok');
+        
+        foretagHidden?.addEventListener('change', updateFolders);
+        projektHidden?.addEventListener('change', updateFolders);
+        leverantorHidden?.addEventListener('change', updateFolders);
+        delHidden?.addEventListener('change', updateFolders);
         kodInput?.addEventListener('input', debounce(updateFolders, 500));
+        
+        // También cuando se selecciona de los dropdowns visibles
+        const observer = new MutationObserver(() => {
+            if (foretagHidden?.value && projektHidden?.value && leverantorHidden?.value && delHidden?.value) {
+                updateFolders();
+            }
+        });
+        if (foretagHidden) observer.observe(foretagHidden, { attributes: true, attributeFilter: ['value'] });
+        if (projektHidden) observer.observe(projektHidden, { attributes: true, attributeFilter: ['value'] });
+        if (leverantorHidden) observer.observe(leverantorHidden, { attributes: true, attributeFilter: ['value'] });
+        if (delHidden) observer.observe(delHidden, { attributes: true, attributeFilter: ['value'] });
         
         // Botón crear mapp
         const createBtn = document.getElementById('createFolderBtn');
         const newFolderInput = document.getElementById('newFolderName');
         
         createBtn?.addEventListener('click', async () => {
-            const foretag = foretagValt?.value;
-            const projekt = projektValt?.value;
-            const leverantor = leverantorValt?.value;
-            const del = delValt?.value;
+            const foretag = foretagHidden?.value;
+            const projekt = projektHidden?.value;
+            const leverantor = leverantorHidden?.value;
+            const del = delHidden?.value;
             const kod = kodInput?.value.trim().toUpperCase();
             const folderName = newFolderInput?.value.trim();
             
@@ -133,21 +167,25 @@
         });
         
         // Intentar cargar si ya hay valores
-        await updateFolders();
+        setTimeout(updateFolders, 1000);
         
         // Agregar botón de subida a mapp en el área de dropzone
         addFolderUploadButton();
     }
     
     async function loadFoldersForHierarchy(foretag, projekt, leverantor, del, kod) {
-        if (!window.database) return;
+        const db = getDatabase();
+        if (!db) {
+            console.warn('Firebase no disponible');
+            return;
+        }
         
         const path = getFolderStoragePath(foretag, projekt, leverantor, del, kod);
         const container = document.getElementById('foldersListContainer');
         if (!container) return;
         
         try {
-            const snapshot = await window.database.ref(path).once('value');
+            const snapshot = await db.ref(path).once('value');
             const folders = snapshot.val() || {};
             const folderNames = Object.keys(folders);
             
@@ -213,22 +251,28 @@
             
         } catch (error) {
             console.error('Fel vid laddning av mappar:', error);
-            container.innerHTML = `<div style="color: #e74c3c; padding: 1rem;">❌ Kunde inte ladda mappar</div>`;
+            container.innerHTML = `<div style="color: #e74c3c; padding: 1rem;">❌ Kunde inte ladda mappar: ${error.message}</div>`;
         }
     }
     
     async function createFolderInHierarchy(foretag, projekt, leverantor, del, kod, folderName) {
+        const db = getDatabase();
+        if (!db) {
+            showToastMsg('❌ Firebase inte tillgänglig', true);
+            return false;
+        }
+        
         const path = getFolderStoragePath(foretag, projekt, leverantor, del, kod);
         const folderId = sanitizeKey(folderName);
         
         try {
-            const snapshot = await window.database.ref(`${path}/${folderId}`).once('value');
+            const snapshot = await db.ref(`${path}/${folderId}`).once('value');
             if (snapshot.exists()) {
                 showToastMsg(`❌ Mappen "${folderName}" finns redan`, true);
                 return false;
             }
             
-            await window.database.ref(`${path}/${folderId}`).set({
+            await db.ref(`${path}/${folderId}`).set({
                 name: folderName,
                 createdAt: new Date().toISOString(),
                 files: {}
@@ -238,17 +282,20 @@
             return true;
         } catch (error) {
             console.error(error);
-            showToastMsg(`❌ Kunde inte skapa mapp`, true);
+            showToastMsg(`❌ Kunde inte skapa mapp: ${error.message}`, true);
             return false;
         }
     }
     
     async function deleteFolderInHierarchy(foretag, projekt, leverantor, del, kod, folderName) {
+        const db = getDatabase();
+        if (!db) return false;
+        
         const path = getFolderStoragePath(foretag, projekt, leverantor, del, kod);
         const folderId = sanitizeKey(folderName);
         
         try {
-            await window.database.ref(`${path}/${folderId}`).remove();
+            await db.ref(`${path}/${folderId}`).remove();
             return true;
         } catch (error) {
             console.error(error);
@@ -279,9 +326,9 @@
             // Uppdatera visningen av mappar
             await loadFoldersForHierarchy(foretag, projekt, leverantor, del, kod);
             
-            // Uppdatera även befintliga filer
-            if (typeof laddaBefintligaFiler === 'function') {
-                setTimeout(() => laddaBefintligaFiler(), 1000);
+            // Uppdatera även befintliga filer om funktionen finns
+            if (typeof window.laddaBefintligaFiler === 'function') {
+                setTimeout(() => window.laddaBefintligaFiler(), 1000);
             }
         };
         
@@ -289,6 +336,9 @@
     }
     
     async function uploadFileToHierarchyFolder(file, foretag, projekt, leverantor, del, kod, folderName) {
+        const db = getDatabase();
+        if (!db) return false;
+        
         // Använd Cloudinary för uppladdning
         const formData = new FormData();
         const timestamp = Date.now();
@@ -316,7 +366,7 @@
             const folderId = sanitizeKey(folderName);
             const fileId = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
             
-            await window.database.ref(`${storagePath}/${folderId}/files/${fileId}`).set({
+            await db.ref(`${storagePath}/${folderId}/files/${fileId}`).set({
                 filename: file.name,
                 size: file.size,
                 date: new Date().toISOString(),
@@ -385,15 +435,13 @@
                     
                     let successCount = 0;
                     for (const file of files) {
-                        const relativePath = file.webkitRelativePath;
-                        const subPath = relativePath.split('/').slice(1).join('/'); // Mappstruktur inuti
-                        const success = await uploadFileToHierarchyFolderWithPath(file, foretag, projekt, leverantor, del, kod, finalFolder, subPath);
+                        const success = await uploadFileToHierarchyFolder(file, foretag, projekt, leverantor, del, kod, finalFolder);
                         if (success) successCount++;
                     }
                     
                     showToastMsg(`✅ ${successCount} av ${files.length} filer uppladdade till "${finalFolder}"`);
                     await loadFoldersForHierarchy(foretag, projekt, leverantor, del, kod);
-                    if (typeof laddaBefintligaFiler === 'function') laddaBefintligaFiler();
+                    if (typeof window.laddaBefintligaFiler === 'function') window.laddaBefintligaFiler();
                 }
             }
             
@@ -411,48 +459,6 @@
         dropzone.appendChild(folderInput);
     }
     
-    async function uploadFileToHierarchyFolderWithPath(file, foretag, projekt, leverantor, del, kod, folderName, subPath) {
-        const formData = new FormData();
-        const timestamp = Date.now();
-        const safeFilename = file.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
-        const subFolder = subPath ? subPath.replace(/[^a-zA-Z0-9åäöÅÄÖ/\\-]/g, '_').substring(0, file.name.length > 0 ? file.name.length : 0) : '';
-        const fullFolderPath = `underlag/${sanitizeKey(foretag)}/${sanitizeKey(projekt)}/${sanitizeKey(leverantor)}/${sanitizeKey(del)}/${sanitizeKey(kod)}/${sanitizeKey(folderName)}${subFolder ? '/' + subFolder : ''}`;
-        const publicId = `${fullFolderPath}/${timestamp}_${safeFilename}`;
-        
-        formData.append('file', file);
-        formData.append('upload_preset', 'team01');
-        formData.append('public_id', publicId);
-        formData.append('resource_type', 'auto');
-        
-        try {
-            const response = await fetch(`https://api.cloudinary.com/v1_1/dc1zqri3o/auto/upload`, { method: 'POST', body: formData });
-            const data = await response.json();
-            if (!response.ok) throw new Error('Upload failed');
-            
-            const downloadUrl = data.secure_url + (data.secure_url.includes('?') ? '&fl_attachment' : '?fl_attachment');
-            
-            const storagePath = getFolderStoragePath(foretag, projekt, leverantor, del, kod);
-            const folderId = sanitizeKey(folderName);
-            const fileId = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
-            
-            await window.database.ref(`${storagePath}/${folderId}/files/${fileId}`).set({
-                filename: file.name,
-                size: file.size,
-                date: new Date().toISOString(),
-                previewUrl: data.secure_url,
-                downloadUrl: downloadUrl,
-                folder: folderName,
-                subPath: subPath,
-                originalCode: kod
-            });
-            
-            return true;
-        } catch (error) {
-            console.error('Upload error:', error);
-            return false;
-        }
-    }
-    
     // ==================== VIEWER MODE ====================
     async function initViewerFolderSystem() {
         if (document.readyState === 'loading') {
@@ -463,6 +469,9 @@
     }
     
     async function setupViewerUI() {
+        const db = getDatabase();
+        if (!db) return;
+        
         // Extraer parámetros de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const foretag = urlParams.get('company');
@@ -476,7 +485,7 @@
         const path = getFolderStoragePath(foretag, projekt, leverantor, del, kod);
         
         try {
-            const snapshot = await window.database.ref(path).once('value');
+            const snapshot = await db.ref(path).once('value');
             const folders = snapshot.val() || {};
             
             if (Object.keys(folders).length === 0) return;
@@ -514,11 +523,14 @@
     }
     
     async function filterViewerByFolder(foretag, projekt, leverantor, del, kod, folderName) {
+        const db = getDatabase();
+        if (!db) return;
+        
         const path = getFolderStoragePath(foretag, projekt, leverantor, del, kod);
         const folderId = sanitizeKey(folderName);
         
         try {
-            const snapshot = await window.database.ref(`${path}/${folderId}/files`).once('value');
+            const snapshot = await db.ref(`${path}/${folderId}/files`).once('value');
             const files = snapshot.val() || {};
             const filesArray = Object.values(files);
             
