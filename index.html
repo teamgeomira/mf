@@ -276,6 +276,14 @@
         if (flerBtn) flerBtn.addEventListener('click', () => { foretagLimit += 20; uppdateraForetagDropdown(); });
         const farreBtn = foretagDropdown.querySelector('#foretagVisaFarre');
         if (farreBtn) farreBtn.addEventListener('click', () => { foretagLimit = 10; uppdateraForetagDropdown(); });
+        
+        // AUTO-VÄLJ FÖRSTA FÖRETAGET
+        if (foretag.length > 0 && !foretagValt.value) {
+            const forstaForetag = foretag[0];
+            foretagSok.value = forstaForetag;
+            foretagValt.value = forstaForetag;
+            await uppdateraProjektEfterForetag(forstaForetag);
+        }
     }
     
     async function uppdateraProjektEfterForetag(foretag) {
@@ -294,6 +302,14 @@
         nuvarandeProjekt = projekt;
         projektSok.disabled = false;
         await uppdateraProjektDropdown();
+        
+        // AUTO-VÄLJ FÖRSTA PROJEKTET
+        if (projekt.length > 0 && !projektValt.value) {
+            const forstaProjekt = projekt[0];
+            projektSok.value = forstaProjekt;
+            projektValt.value = forstaProjekt;
+            await uppdateraLeverantörEfterProjekt(foretag, forstaProjekt);
+        }
     }
     
     async function uppdateraProjektDropdown() {
@@ -345,6 +361,14 @@
         nuvarandeLeverantorer = leverantorer;
         leverantorSok.disabled = false;
         await uppdateraLeverantörDropdown();
+        
+        // AUTO-VÄLJ FÖRSTA LEVERANTÖREN
+        if (leverantorer.length > 0 && !leverantorValt.value) {
+            const forstaLeverantor = leverantorer[0];
+            leverantorSok.value = forstaLeverantor;
+            leverantorValt.value = forstaLeverantor;
+            await uppdateraDelEfterLeverantör(foretag, projekt, forstaLeverantor);
+        }
     }
     
     async function uppdateraLeverantörDropdown() {
@@ -394,6 +418,14 @@
         nuvarandeDelar = delar;
         delSok.disabled = false;
         await uppdateraDelDropdown();
+        
+        // AUTO-VÄLJ FÖRSTA DELEN
+        if (delar.length > 0 && !delValt.value) {
+            const forstaDel = delar[0];
+            delSok.value = forstaDel;
+            delValt.value = forstaDel;
+            await uppdateraKodEfterDel(foretag, projekt, leverantor, forstaDel);
+        }
     }
     
     async function uppdateraDelDropdown() {
@@ -441,6 +473,14 @@
         nuvarandeKoder = koder;
         kodSok.disabled = false;
         await uppdateraKodDropdown();
+        
+        // AUTO-VÄLJ FÖRSTA KODEN
+        if (koder.length > 0 && !kodValt.value) {
+            const forstaKod = koder[0];
+            kodSok.value = forstaKod;
+            kodValt.value = forstaKod;
+            await laddaBefintligaFiler();
+        }
     }
     
     async function uppdateraKodDropdown() {
@@ -610,18 +650,39 @@
     
     async function uppdateraEfterAndring() {
         await uppdateraForetagDropdown();
-        if (foretagValt.value) await uppdateraProjektEfterForetag(foretagValt.value);
-        if (foretagValt.value && projektValt.value) await uppdateraLeverantörEfterProjekt(foretagValt.value, projektValt.value);
-        if (foretagValt.value && projektValt.value && leverantorValt.value) await uppdateraDelEfterLeverantör(foretagValt.value, projektValt.value, leverantorValt.value);
-        if (foretagValt.value && projektValt.value && leverantorValt.value && delValt.value) await uppdateraKodEfterDel(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value);
+        
+        // Efter uppdateraForetagDropdown har redan auto-valt första företaget
+        if (foretagValt.value) {
+            await uppdateraProjektEfterForetag(foretagValt.value);
+        }
+        
+        if (foretagValt.value && projektValt.value) {
+            await uppdateraLeverantörEfterProjekt(foretagValt.value, projektValt.value);
+        }
+        
+        if (foretagValt.value && projektValt.value && leverantorValt.value) {
+            await uppdateraDelEfterLeverantör(foretagValt.value, projektValt.value, leverantorValt.value);
+        }
+        
+        if (foretagValt.value && projektValt.value && leverantorValt.value && delValt.value) {
+            await uppdateraKodEfterDel(foretagValt.value, projektValt.value, leverantorValt.value, delValt.value);
+        }
+        
         await laddaBefintligaFiler();
     }
     
+    // ========== START ==========
     laggTillDropdownEventer();
-    uppdateraForetagDropdown();
+    
+    // Ladda första gången och auto-välj första värden
+    (async function start() {
+        await uppdateraForetagDropdown();
+        // uppdateraForetagDropdown innehåller redan auto-val av första företag
+        // som sedan triggar kedjan av auto-val via uppdateraProjektEfterForetag etc.
+    })();
+    
     console.log("✅ Admin redo – Firebase ansluten");
 </script>
 <script src="folder-manager.js"></script>
-<script src="viewer-enhancer.js"></script>    
 </body>
 </html>
