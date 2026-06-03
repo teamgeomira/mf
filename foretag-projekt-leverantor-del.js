@@ -1,6 +1,7 @@
 // ============================================
 // HANTERING AV FÖRETAG, PROJEKT, LEVERANTÖR, DEL, KOD
-// ALL DATA LAGRAS I FIREBASE REALTIME DATABASE
+// FULLSKÄRMSMODAL MED EXPANDERBART TRÄD
+// FUNGERAR LOKALT OCH PÅ SERVER
 // ============================================
 
 let databasReferens = null;
@@ -20,21 +21,28 @@ function initieraHierarki(databas, callback) {
 // ========== FÖRETAG ==========
 async function hamtaForetag() {
     if (!databasReferens) return [];
-    const snap = await databasReferens.ref('foretag').once('value');
-    const data = snap.val();
-    if (!data) return [];
-    return Object.values(data).map(f => f.namn).sort();
+    try {
+        const snap = await databasReferens.ref('foretag').once('value');
+        const data = snap.val();
+        if (!data) return [];
+        return Object.values(data).map(f => f.namn).sort();
+    } catch(e) {
+        console.error("Fel vid hämtning av företag:", e);
+        return [];
+    }
 }
 
 async function laggTillForetag(foretag) {
     if (!foretag?.trim()) return false;
     const namn = foretag.trim();
     const nyckel = rensaNyckel(namn);
-    const finns = await databasReferens.ref(`foretag/${nyckel}`).once('value');
-    if (finns.exists()) return false;
-    await databasReferens.ref(`foretag/${nyckel}`).set({ namn, projekt: {} });
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const finns = await databasReferens.ref(`foretag/${nyckel}`).once('value');
+        if (finns.exists()) return false;
+        await databasReferens.ref(`foretag/${nyckel}`).set({ namn, projekt: {} });
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function redigeraForetag(gammalt, nytt) {
@@ -42,19 +50,23 @@ async function redigeraForetag(gammalt, nytt) {
     if (gammalt === nytt.trim()) return true;
     const gammalNyckel = rensaNyckel(gammalt);
     const nyNyckel = rensaNyckel(nytt.trim());
-    const data = (await databasReferens.ref(`foretag/${gammalNyckel}`).once('value')).val();
-    if (!data) return false;
-    await databasReferens.ref(`foretag/${nyNyckel}`).set({ namn: nytt.trim(), projekt: data.projekt || {} });
-    await databasReferens.ref(`foretag/${gammalNyckel}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const data = (await databasReferens.ref(`foretag/${gammalNyckel}`).once('value')).val();
+        if (!data) return false;
+        await databasReferens.ref(`foretag/${nyNyckel}`).set({ namn: nytt.trim(), projekt: data.projekt || {} });
+        await databasReferens.ref(`foretag/${gammalNyckel}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function taBortForetag(foretag) {
     if (!foretag) return false;
-    await databasReferens.ref(`foretag/${rensaNyckel(foretag)}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function filtreraForetag(sok) {
@@ -66,10 +78,12 @@ async function filtreraForetag(sok) {
 // ========== PROJEKT ==========
 async function hamtaProjekt(foretag) {
     if (!foretag) return [];
-    const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt`).once('value');
-    const data = snap.val();
-    if (!data) return [];
-    return Object.values(data).map(p => p.namn).sort();
+    try {
+        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt`).once('value');
+        const data = snap.val();
+        if (!data) return [];
+        return Object.values(data).map(p => p.namn).sort();
+    } catch(e) { return []; }
 }
 
 async function laggTillProjekt(foretag, projekt) {
@@ -77,11 +91,13 @@ async function laggTillProjekt(foretag, projekt) {
     const fNyckel = rensaNyckel(foretag);
     const pNamn = projekt.trim();
     const pNyckel = rensaNyckel(pNamn);
-    const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}`).once('value');
-    if (finns.exists()) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}`).set({ namn: pNamn, leverantörer: {} });
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}`).once('value');
+        if (finns.exists()) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}`).set({ namn: pNamn, leverantörer: {} });
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function redigeraProjekt(foretag, gammalt, nytt) {
@@ -90,28 +106,34 @@ async function redigeraProjekt(foretag, gammalt, nytt) {
     const fNyckel = rensaNyckel(foretag);
     const gNyckel = rensaNyckel(gammalt);
     const nNyckel = rensaNyckel(nytt.trim());
-    const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${gNyckel}`).once('value')).val();
-    if (!data) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${nNyckel}`).set({ namn: nytt.trim(), leverantörer: data.leverantörer || {} });
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${gNyckel}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${gNyckel}`).once('value')).val();
+        if (!data) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${nNyckel}`).set({ namn: nytt.trim(), leverantörer: data.leverantörer || {} });
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${gNyckel}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function taBortProjekt(foretag, projekt) {
     if (!foretag || !projekt) return false;
-    await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 // ========== LEVERANTÖR ==========
 async function hamtaLeverantörer(foretag, projekt) {
     if (!foretag || !projekt) return [];
-    const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer`).once('value');
-    const data = snap.val();
-    if (!data) return [];
-    return Object.values(data).map(l => l.namn).sort();
+    try {
+        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer`).once('value');
+        const data = snap.val();
+        if (!data) return [];
+        return Object.values(data).map(l => l.namn).sort();
+    } catch(e) { return []; }
 }
 
 async function laggTillLeverantör(foretag, projekt, leverantor) {
@@ -120,11 +142,13 @@ async function laggTillLeverantör(foretag, projekt, leverantor) {
     const pNyckel = rensaNyckel(projekt);
     const lNamn = leverantor.trim();
     const lNyckel = rensaNyckel(lNamn);
-    const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}`).once('value');
-    if (finns.exists()) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}`).set({ namn: lNamn, delar: {} });
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}`).once('value');
+        if (finns.exists()) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}`).set({ namn: lNamn, delar: {} });
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function redigeraLeverantör(foretag, projekt, gammal, nytt) {
@@ -134,28 +158,34 @@ async function redigeraLeverantör(foretag, projekt, gammal, nytt) {
     const pNyckel = rensaNyckel(projekt);
     const gNyckel = rensaNyckel(gammal);
     const nNyckel = rensaNyckel(nytt.trim());
-    const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${gNyckel}`).once('value')).val();
-    if (!data) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${nNyckel}`).set({ namn: nytt.trim(), delar: data.delar || {} });
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${gNyckel}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${gNyckel}`).once('value')).val();
+        if (!data) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${nNyckel}`).set({ namn: nytt.trim(), delar: data.delar || {} });
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${gNyckel}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function taBortLeverantör(foretag, projekt, leverantor) {
     if (!foretag || !projekt || !leverantor) return false;
-    await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 // ========== DEL ==========
 async function hamtaDelar(foretag, projekt, leverantor) {
     if (!foretag || !projekt || !leverantor) return [];
-    const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar`).once('value');
-    const data = snap.val();
-    if (!data) return [];
-    return Object.values(data).map(d => d.namn).sort();
+    try {
+        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar`).once('value');
+        const data = snap.val();
+        if (!data) return [];
+        return Object.values(data).map(d => d.namn).sort();
+    } catch(e) { return []; }
 }
 
 async function laggTillDel(foretag, projekt, leverantor, del) {
@@ -165,11 +195,13 @@ async function laggTillDel(foretag, projekt, leverantor, del) {
     const lNyckel = rensaNyckel(leverantor);
     const dNamn = del.trim();
     const dNyckel = rensaNyckel(dNamn);
-    const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}`).once('value');
-    if (finns.exists()) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}`).set({ namn: dNamn, koder: {} });
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}`).once('value');
+        if (finns.exists()) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}`).set({ namn: dNamn, koder: {} });
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function redigeraDel(foretag, projekt, leverantor, gammal, nytt) {
@@ -180,28 +212,34 @@ async function redigeraDel(foretag, projekt, leverantor, gammal, nytt) {
     const lNyckel = rensaNyckel(leverantor);
     const gNyckel = rensaNyckel(gammal);
     const nNyckel = rensaNyckel(nytt.trim());
-    const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${gNyckel}`).once('value')).val();
-    if (!data) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${nNyckel}`).set({ namn: nytt.trim(), koder: data.koder || {} });
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${gNyckel}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${gNyckel}`).once('value')).val();
+        if (!data) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${nNyckel}`).set({ namn: nytt.trim(), koder: data.koder || {} });
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${gNyckel}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function taBortDel(foretag, projekt, leverantor, del) {
     if (!foretag || !projekt || !leverantor || !del) return false;
-    await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 // ========== KOD ==========
 async function hamtaKoder(foretag, projekt, leverantor, del) {
     if (!foretag || !projekt || !leverantor || !del) return [];
-    const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}/koder`).once('value');
-    const data = snap.val();
-    if (!data) return [];
-    return Object.values(data).map(k => k.namn).sort();
+    try {
+        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}/koder`).once('value');
+        const data = snap.val();
+        if (!data) return [];
+        return Object.values(data).map(k => k.namn).sort();
+    } catch(e) { return []; }
 }
 
 async function laggTillKod(foretag, projekt, leverantor, del, kod) {
@@ -212,11 +250,13 @@ async function laggTillKod(foretag, projekt, leverantor, del, kod) {
     const dNyckel = rensaNyckel(del);
     const kNamn = kod.trim().toUpperCase();
     const kNyckel = rensaNyckel(kNamn);
-    const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${kNyckel}`).once('value');
-    if (finns.exists()) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${kNyckel}`).set({ namn: kNamn });
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${kNyckel}`).once('value');
+        if (finns.exists()) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${kNyckel}`).set({ namn: kNamn });
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function redigeraKod(foretag, projekt, leverantor, del, gammal, nytt) {
@@ -228,286 +268,309 @@ async function redigeraKod(foretag, projekt, leverantor, del, gammal, nytt) {
     const dNyckel = rensaNyckel(del);
     const gNyckel = rensaNyckel(gammal);
     const nNyckel = rensaNyckel(nytt.trim().toUpperCase());
-    const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${gNyckel}`).once('value')).val();
-    if (!data) return false;
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${nNyckel}`).set({ namn: nytt.trim().toUpperCase() });
-    await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${gNyckel}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${gNyckel}`).once('value')).val();
+        if (!data) return false;
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${nNyckel}`).set({ namn: nytt.trim().toUpperCase() });
+        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${gNyckel}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
 async function taBortKod(foretag, projekt, leverantor, del, kod) {
     if (!foretag || !projekt || !leverantor || !del || !kod) return false;
-    await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}/koder/${rensaNyckel(kod)}`).remove();
-    if (uppdateringsCallback) await uppdateringsCallback();
-    return true;
+    try {
+        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}/koder/${rensaNyckel(kod)}`).remove();
+        if (uppdateringsCallback) await uppdateringsCallback();
+        return true;
+    } catch(e) { return false; }
 }
 
-// ========== MODALT FÖNSTER FÖR HANTERING (uppdaterat) ==========
+// ========== MODALT FÖNSTER MED EXPANDERBART TRÄD ==========
 function visaModalHantering(efterStangningCallback) {
+    // Modal-overlay (fullskärm)
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7); display: flex; justify-content: center;
-        align-items: center; z-index: 2000; backdrop-filter: blur(3px);
+        background: rgba(0,0,0,0.85); display: flex; justify-content: center;
+        align-items: center; z-index: 10000; backdrop-filter: blur(4px);
     `;
 
-    const rendera = async () => {
+    // Modal-innehåll (nästan fullskärm)
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white; border-radius: 1.5rem; width: 95%; max-width: 1400px;
+        height: 90%; display: flex; flex-direction: column;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        overflow: hidden;
+    `;
+
+    // Rubrikrad
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = `
+        padding: 1rem 1.5rem; border-bottom: 2px solid #e2edf5;
+        display: flex; justify-content: space-between; align-items: center;
+        background: #f8fafc;
+    `;
+    headerDiv.innerHTML = `
+        <h2 style="margin:0; font-size:1.5rem;"><i class="fas fa-database"></i> Hantera hierarki</h2>
+        <button id="stangFullModalBtn" class="btn-secondary" style="padding:0.5rem 1.2rem;"><i class="fas fa-times"></i> Stäng</button>
+    `;
+
+    // Scrollbart träd-område
+    const treeContainer = document.createElement('div');
+    treeContainer.id = 'hierarchyTreeContainer';
+    treeContainer.style.cssText = `
+        flex: 1; overflow-y: auto; padding: 1.5rem;
+        background: #ffffff;
+    `;
+
+    modalContent.appendChild(headerDiv);
+    modalContent.appendChild(treeContainer);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+
+    // Ladda och rendera trädet (async function)
+    async function laddaOchRenderaTräd() {
+        treeContainer.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-pulse"></i> Laddar hierarki...</div>';
+        
         const foretagLista = await hamtaForetag();
-        let html = `<div style="max-height: 500px; overflow-y: auto; margin-bottom: 1rem;">`;
+        let html = `<div class="hierarchy-tree" style="font-size:0.95rem;">`;
 
         for (const f of foretagLista) {
             const projektLista = await hamtaProjekt(f);
             html += `
-                <div style="margin-bottom: 1.5rem; border: 1px solid #e2edf5; border-radius: 0.8rem; padding: 0.8rem;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <strong><i class="fas fa-building"></i> ${escapeHtml(f)}</strong>
-                        <div>
-                            <button class="redigera-foretag" data-foretag="${escapeHtml(f)}" style="background:#eef3fc; border:none; padding:0.2rem 0.6rem; border-radius:1rem;"><i class="fas fa-edit"></i></button>
-                            <button class="taBort-foretag" data-foretag="${escapeHtml(f)}" style="background:#fee2e2; border:none; padding:0.2rem 0.6rem; border-radius:1rem; color:#b91c2c;"><i class="fas fa-trash"></i></button>
-                        </div>
+                <div class="tree-node company-node" data-foretag="${escapeHtml(f)}" style="margin-bottom:1rem; border-left:3px solid #2c7cb6; padding-left:0.5rem;">
+                    <div class="tree-header" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; cursor:pointer; padding:0.3rem 0;">
+                        <i class="fas fa-chevron-right toggle-icon" style="width:16px;"></i>
+                        <i class="fas fa-building" style="color:#2c7cb6; width:20px;"></i>
+                        <strong style="flex:1;">${escapeHtml(f)}</strong>
+                        <span style="display:flex; gap:0.3rem;">
+                            <button class="btn-edit btn-sm" data-type="company" data-name="${escapeHtml(f)}" title="Redigera" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-edit"></i></button>
+                            <button class="btn-delete btn-sm" data-type="company" data-name="${escapeHtml(f)}" title="Ta bort" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-trash"></i></button>
+                            <button class="btn-add btn-sm" data-type="project" data-parent="${escapeHtml(f)}" title="Lägg till projekt" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-plus"></i> Projekt</button>
+                        </span>
                     </div>
-                    <div style="margin-left:1rem;">
-                        <div style="font-size:0.8rem; color:#4a6f8f;">Projekt:</div>
-                        <ul style="margin-left:1.5rem;">`;
-            if (projektLista.length === 0) html += `<li>Inga projekt</li>`;
+                    <div class="tree-children" style="display: none; margin-left: 2rem;">
+            `;
             for (const p of projektLista) {
                 const leverantörLista = await hamtaLeverantörer(f, p);
                 html += `
-                    <li style="margin-bottom:0.8rem;">
-                        <div style="display:flex; justify-content:space-between;">
-                            <span><i class="fas fa-project-diagram"></i> <strong>${escapeHtml(p)}</strong></span>
-                            <div>
-                                <button class="redigera-projekt" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" style="background:#eef3fc; border:none; padding:0.1rem 0.5rem; border-radius:1rem;"><i class="fas fa-edit"></i></button>
-                                <button class="taBort-projekt" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" style="background:#fee2e2; border:none; padding:0.1rem 0.5rem; border-radius:1rem; color:#b91c2c;"><i class="fas fa-trash"></i></button>
-                            </div>
+                    <div class="tree-node project-node" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" style="margin-bottom:0.8rem; border-left:2px solid #e67e22; padding-left:0.5rem;">
+                        <div class="tree-header" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; cursor:pointer; padding:0.2rem 0;">
+                            <i class="fas fa-chevron-right toggle-icon" style="width:16px;"></i>
+                            <i class="fas fa-project-diagram" style="color:#e67e22; width:20px;"></i>
+                            <strong style="flex:1;">${escapeHtml(p)}</strong>
+                            <span style="display:flex; gap:0.3rem;">
+                                <button class="btn-edit btn-sm" data-type="project" data-foretag="${escapeHtml(f)}" data-name="${escapeHtml(p)}" title="Redigera" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-edit"></i></button>
+                                <button class="btn-delete btn-sm" data-type="project" data-foretag="${escapeHtml(f)}" data-name="${escapeHtml(p)}" title="Ta bort" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-trash"></i></button>
+                                <button class="btn-add btn-sm" data-type="leverantor" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" title="Lägg till leverantör" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-plus"></i> Leverantör</button>
+                            </span>
                         </div>
-                        <div style="margin-left:1.5rem;">
-                            <div style="font-size:0.75rem;">Leverantörer:</div>
-                            <ul style="margin-left:1rem;">`;
-                if (leverantörLista.length === 0) html += `<li>Inga leverantörer</li>`;
+                        <div class="tree-children" style="display: none; margin-left: 1.5rem;">
+                `;
                 for (const l of leverantörLista) {
                     const delLista = await hamtaDelar(f, p, l);
                     html += `
-                        <li>
-                            <div style="display:flex; justify-content:space-between;">
-                                <span><i class="fas fa-truck"></i> ${escapeHtml(l)}</span>
-                                <div>
-                                    <button class="redigera-leverantor" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" style="background:#eef3fc; border:none; padding:0.1rem 0.4rem; border-radius:1rem;"><i class="fas fa-edit"></i></button>
-                                    <button class="taBort-leverantor" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" style="background:#fee2e2; border:none; padding:0.1rem 0.4rem; border-radius:1rem; color:#b91c2c;"><i class="fas fa-trash"></i></button>
-                                </div>
+                        <div class="tree-node leverantor-node" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" style="margin-bottom:0.8rem; border-left:2px solid #16a085; padding-left:0.5rem;">
+                            <div class="tree-header" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; cursor:pointer; padding:0.2rem 0;">
+                                <i class="fas fa-chevron-right toggle-icon" style="width:16px;"></i>
+                                <i class="fas fa-truck" style="color:#16a085; width:20px;"></i>
+                                <strong style="flex:1;">${escapeHtml(l)}</strong>
+                                <span style="display:flex; gap:0.3rem;">
+                                    <button class="btn-edit btn-sm" data-type="leverantor" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-name="${escapeHtml(l)}" title="Redigera" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-delete btn-sm" data-type="leverantor" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-name="${escapeHtml(l)}" title="Ta bort" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-add btn-sm" data-type="del" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" title="Lägg till del" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-plus"></i> Del</button>
+                                </span>
                             </div>
-                            <div style="margin-left:1.5rem;">
-                                <div style="font-size:0.75rem;">Delar:</div>
-                                <ul style="margin-left:1rem;">`;
-                    if (delLista.length === 0) html += `<li>Inga delar</li>`;
+                            <div class="tree-children" style="display: none; margin-left: 1.5rem;">
+                    `;
                     for (const d of delLista) {
                         const kodLista = await hamtaKoder(f, p, l, d);
                         html += `
-                            <li>
-                                <div style="display:flex; justify-content:space-between;">
-                                    <span><i class="fas fa-puzzle-piece"></i> ${escapeHtml(d)}</span>
-                                    <div>
-                                        <button class="redigera-del" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" style="background:#eef3fc; border:none; padding:0.1rem 0.4rem; border-radius:1rem;"><i class="fas fa-edit"></i></button>
-                                        <button class="taBort-del" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" style="background:#fee2e2; border:none; padding:0.1rem 0.4rem; border-radius:1rem; color:#b91c2c;"><i class="fas fa-trash"></i></button>
-                                    </div>
+                            <div class="tree-node del-node" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" style="margin-bottom:0.8rem; border-left:2px solid #8e44ad; padding-left:0.5rem;">
+                                <div class="tree-header" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; cursor:pointer; padding:0.2rem 0;">
+                                    <i class="fas fa-chevron-right toggle-icon" style="width:16px;"></i>
+                                    <i class="fas fa-puzzle-piece" style="color:#8e44ad; width:20px;"></i>
+                                    <strong style="flex:1;">${escapeHtml(d)}</strong>
+                                    <span style="display:flex; gap:0.3rem;">
+                                        <button class="btn-edit btn-sm" data-type="del" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-name="${escapeHtml(d)}" title="Redigera" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-delete btn-sm" data-type="del" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-name="${escapeHtml(d)}" title="Ta bort" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-trash"></i></button>
+                                        <button class="btn-add btn-sm" data-type="kod" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" title="Lägg till kod" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-plus"></i> Kod</button>
+                                    </span>
                                 </div>
-                                <div style="margin-left:1.5rem;">
-                                    <div style="font-size:0.75rem;">Koder:</div>
-                                    <ul style="margin-left:1rem;">`;
-                        if (kodLista.length === 0) html += `<li>Inga koder</li>`;
+                                <div class="tree-children" style="display: none; margin-left: 1.5rem;">
+                        `;
                         for (const k of kodLista) {
                             html += `
-                                <li style="display:flex; justify-content:space-between;">
-                                    <span><i class="fas fa-tag"></i> ${escapeHtml(k)}</span>
-                                    <div>
-                                        <button class="redigera-kod" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" data-kod="${escapeHtml(k)}" style="background:#eef3fc; border:none; padding:0.1rem 0.4rem; border-radius:1rem;"><i class="fas fa-edit"></i></button>
-                                        <button class="taBort-kod" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" data-kod="${escapeHtml(k)}" style="background:#fee2e2; border:none; padding:0.1rem 0.4rem; border-radius:1rem; color:#b91c2c;"><i class="fas fa-trash"></i></button>
+                                <div class="tree-node kod-node" style="margin-bottom:0.3rem;">
+                                    <div class="tree-header" style="display:flex; align-items:center; gap:0.5rem; padding:0.1rem 0;">
+                                        <i class="fas fa-tag" style="color:#e67e22; width:20px; margin-left:20px;"></i>
+                                        <span style="flex:1;">${escapeHtml(k)}</span>
+                                        <span style="display:flex; gap:0.3rem;">
+                                            <button class="btn-edit btn-sm" data-type="kod" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" data-name="${escapeHtml(k)}" title="Redigera" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-delete btn-sm" data-type="kod" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" data-name="${escapeHtml(k)}" title="Ta bort" style="padding:0.2rem 0.5rem; font-size:0.7rem;"><i class="fas fa-trash"></i></button>
+                                        </span>
                                     </div>
-                                </li>`;
-                        }
-                        html += `</ul>
-                                    <button class="laggTill-kod" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" data-del="${escapeHtml(d)}" style="background:#e2e8f0; border:none; padding:0.1rem 0.5rem; border-radius:1rem; margin-top:0.2rem;"><i class="fas fa-plus"></i> Lägg till kod</button>
                                 </div>
-                            </li>`;
+                            `;
+                        }
+                        html += `</div></div>`;
                     }
-                    html += `</ul>
-                                <button class="laggTill-del" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" data-leverantor="${escapeHtml(l)}" style="background:#e2e8f0; border:none; padding:0.1rem 0.5rem; border-radius:1rem; margin-top:0.2rem;"><i class="fas fa-plus"></i> Lägg till del</button>
-                            </div>
-                        </li>`;
+                    html += `</div></div>`;
                 }
-                html += `</ul>
-                            <button class="laggTill-leverantor" data-foretag="${escapeHtml(f)}" data-projekt="${escapeHtml(p)}" style="background:#e2e8f0; border:none; padding:0.2rem 0.6rem; border-radius:1rem; margin-top:0.3rem;"><i class="fas fa-plus"></i> Lägg till leverantör</button>
-                        </div>
-                    </li>`;
+                html += `</div></div>`;
             }
-            html += `</ul>
-                        <button class="laggTill-projekt" data-foretag="${escapeHtml(f)}" style="background:#e2e8f0; border:none; padding:0.2rem 0.6rem; border-radius:1rem; margin-top:0.5rem;"><i class="fas fa-plus"></i> Lägg till projekt</button>
-                    </div>
-                </div>`;
+            html += `</div></div>`;
         }
         html += `</div>
-            <div style="display: flex; justify-content: space-between;">
-                <button id="nyttForetagBtn" style="background:#2c7cb6; color:white; border:none; padding:0.6rem 1rem; border-radius:2rem;"><i class="fas fa-plus-circle"></i> Nytt företag</button>
-                <button id="stangModalBtn" style="background:#e2e8f0; border:none; padding:0.6rem 1rem; border-radius:2rem;">Stäng</button>
-            </div>`;
-        const innehall = modal.querySelector('.modal-innehall');
-        if (innehall) innehall.innerHTML = html;
+            <div style="margin-top: 1rem; padding: 0.8rem; background: #f0f6fc; border-radius: 1rem; text-align: center;">
+                <button id="nyttForetagFullBtn" class="btn-success" style="padding:0.5rem 1rem;"><i class="fas fa-plus-circle"></i> Nytt företag</button>
+            </div>
+        `;
+        treeContainer.innerHTML = html;
 
-        // Händelsehanterare för alla nivåer
-        modal.querySelectorAll('.redigera-foretag').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const gammalt = btn.dataset.foretag;
-                const nytt = prompt("Nytt företagsnamn:", gammalt);
-                if (nytt && nytt !== gammalt && await redigeraForetag(gammalt, nytt)) {
-                    await rendera();
+        // Koppla expandera/komprimera (använd onclick istället för addEventListener för att undvika problem)
+        const headers = document.querySelectorAll('#hierarchyTreeContainer .tree-header');
+        for (let i = 0; i < headers.length; i++) {
+            const header = headers[i];
+            const toggleIcon = header.querySelector('.toggle-icon');
+            const childrenDiv = header.parentElement?.querySelector('.tree-children');
+            if (toggleIcon && childrenDiv) {
+                header.style.cursor = 'pointer';
+                header.onclick = function(e) {
+                    if (e.target.closest('button')) return;
+                    const isVisible = childrenDiv.style.display !== 'none';
+                    childrenDiv.style.display = isVisible ? 'none' : 'block';
+                    if (toggleIcon) {
+                        if (isVisible) {
+                            toggleIcon.classList.remove('fa-chevron-down');
+                            toggleIcon.classList.add('fa-chevron-right');
+                        } else {
+                            toggleIcon.classList.remove('fa-chevron-right');
+                            toggleIcon.classList.add('fa-chevron-down');
+                        }
+                    }
+                };
+            }
+        }
+
+        // Koppla knappfunktioner
+        attachButtonHandlers();
+    }
+
+    async function attachButtonHandlers() {
+        // Redigera
+        const editBtns = document.querySelectorAll('#hierarchyTreeContainer .btn-edit');
+        for (let i = 0; i < editBtns.length; i++) {
+            const btn = editBtns[i];
+            btn.onclick = async function(e) {
+                e.stopPropagation();
+                const type = this.dataset.type;
+                const foretag = this.dataset.foretag;
+                const projekt = this.dataset.projekt;
+                const leverantor = this.dataset.leverantor;
+                const del = this.dataset.del;
+                const currentName = this.dataset.name;
+                let newName = prompt(`Ange nytt namn för ${type}:`, currentName);
+                if (!newName || newName === currentName) return;
+                let success = false;
+                if (type === 'company') success = await redigeraForetag(currentName, newName);
+                else if (type === 'project') success = await redigeraProjekt(foretag, currentName, newName);
+                else if (type === 'leverantor') success = await redigeraLeverantör(foretag, projekt, currentName, newName);
+                else if (type === 'del') success = await redigeraDel(foretag, projekt, leverantor, currentName, newName);
+                else if (type === 'kod') success = await redigeraKod(foretag, projekt, leverantor, del, currentName, newName);
+                if (success) {
+                    await laddaOchRenderaTräd();
                     if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte ändra eller namn finns redan.");
-            });
-        });
-        modal.querySelectorAll('.taBort-foretag').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm(`Ta bort företaget "${btn.dataset.foretag}" och allt under det?`)) {
-                    await taBortForetag(btn.dataset.foretag);
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                }
-            });
-        });
-        modal.querySelectorAll('.laggTill-projekt').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag;
-                const nytt = prompt("Nytt projektnamn:");
-                if (nytt && await laggTillProjekt(f, nytt)) {
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte lägga till projekt.");
-            });
-        });
-        modal.querySelectorAll('.redigera-projekt').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag, p = btn.dataset.projekt;
-                const nytt = prompt("Nytt projektnamn:", p);
-                if (nytt && nytt !== p && await redigeraProjekt(f, p, nytt)) {
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte ändra projekt.");
-            });
-        });
-        modal.querySelectorAll('.taBort-projekt').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm(`Ta bort projektet "${btn.dataset.projekt}"?`)) {
-                    await taBortProjekt(btn.dataset.foretag, btn.dataset.projekt);
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                }
-            });
-        });
-        modal.querySelectorAll('.laggTill-leverantor').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag, p = btn.dataset.projekt;
-                const nytt = prompt("Ny leverantör:");
-                if (nytt && await laggTillLeverantör(f, p, nytt)) {
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte lägga till leverantör.");
-            });
-        });
-        modal.querySelectorAll('.redigera-leverantor').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag, p = btn.dataset.projekt, l = btn.dataset.leverantor;
-                const nytt = prompt("Nytt leverantörsnamn:", l);
-                if (nytt && nytt !== l && await redigeraLeverantör(f, p, l, nytt)) {
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte ändra leverantör.");
-            });
-        });
-        modal.querySelectorAll('.taBort-leverantor').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm(`Ta bort leverantören "${btn.dataset.leverantor}"?`)) {
-                    await taBortLeverantör(btn.dataset.foretag, btn.dataset.projekt, btn.dataset.leverantor);
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                }
-            });
-        });
-        modal.querySelectorAll('.laggTill-del').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag, p = btn.dataset.projekt, l = btn.dataset.leverantor;
-                const nytt = prompt("Ny del:");
-                if (nytt && await laggTillDel(f, p, l, nytt)) {
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte lägga till del.");
-            });
-        });
-        modal.querySelectorAll('.redigera-del').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag, p = btn.dataset.projekt, l = btn.dataset.leverantor, d = btn.dataset.del;
-                const nytt = prompt("Nytt delnamn:", d);
-                if (nytt && nytt !== d && await redigeraDel(f, p, l, d, nytt)) {
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte ändra del.");
-            });
-        });
-        modal.querySelectorAll('.taBort-del').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm(`Ta bort delen "${btn.dataset.del}"?`)) {
-                    await taBortDel(btn.dataset.foretag, btn.dataset.projekt, btn.dataset.leverantor, btn.dataset.del);
-                    await rendera();
+                } else alert("Kunde inte ändra. Namnet finns redan eller ogiltigt.");
+            };
+        }
+
+        // Ta bort
+        const deleteBtns = document.querySelectorAll('#hierarchyTreeContainer .btn-delete');
+        for (let i = 0; i < deleteBtns.length; i++) {
+            const btn = deleteBtns[i];
+            btn.onclick = async function(e) {
+                e.stopPropagation();
+                const type = this.dataset.type;
+                const foretag = this.dataset.foretag;
+                const projekt = this.dataset.projekt;
+                const leverantor = this.dataset.leverantor;
+                const del = this.dataset.del;
+                const name = this.dataset.name;
+                if (!confirm(`Ta bort ${type} "${name}" och allt under det?`)) return;
+                let success = false;
+                if (type === 'company') success = await taBortForetag(name);
+                else if (type === 'project') success = await taBortProjekt(foretag, name);
+                else if (type === 'leverantor') success = await taBortLeverantör(foretag, projekt, name);
+                else if (type === 'del') success = await taBortDel(foretag, projekt, leverantor, name);
+                else if (type === 'kod') success = await taBortKod(foretag, projekt, leverantor, del, name);
+                if (success) {
+                    await laddaOchRenderaTräd();
                     if (uppdateringsCallback) uppdateringsCallback();
                 }
-            });
-        });
-        modal.querySelectorAll('.laggTill-kod').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag, p = btn.dataset.projekt, l = btn.dataset.leverantor, d = btn.dataset.del;
-                const nytt = prompt("Ny kod (t.ex. CBB.32):");
-                if (nytt && await laggTillKod(f, p, l, d, nytt)) {
-                    await rendera();
+            };
+        }
+
+        // Lägg till
+        const addBtns = document.querySelectorAll('#hierarchyTreeContainer .btn-add');
+        for (let i = 0; i < addBtns.length; i++) {
+            const btn = addBtns[i];
+            btn.onclick = async function(e) {
+                e.stopPropagation();
+                const type = this.dataset.type;
+                const foretag = this.dataset.foretag;
+                const projekt = this.dataset.projekt;
+                const leverantor = this.dataset.leverantor;
+                const del = this.dataset.del;
+                let newName = prompt(`Ange nytt ${type}-namn:`);
+                if (!newName) return;
+                let success = false;
+                if (type === 'project') success = await laggTillProjekt(foretag, newName);
+                else if (type === 'leverantor') success = await laggTillLeverantör(foretag, projekt, newName);
+                else if (type === 'del') success = await laggTillDel(foretag, projekt, leverantor, newName);
+                else if (type === 'kod') success = await laggTillKod(foretag, projekt, leverantor, del, newName);
+                if (success) {
+                    await laddaOchRenderaTräd();
                     if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte lägga till kod.");
-            });
-        });
-        modal.querySelectorAll('.redigera-kod').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const f = btn.dataset.foretag, p = btn.dataset.projekt, l = btn.dataset.leverantor, d = btn.dataset.del, k = btn.dataset.kod;
-                const nytt = prompt("Ny kod:", k);
-                if (nytt && nytt !== k && await redigeraKod(f, p, l, d, k, nytt)) {
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                } else alert("Kunde inte ändra kod.");
-            });
-        });
-        modal.querySelectorAll('.taBort-kod').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm(`Ta bort koden "${btn.dataset.kod}"?`)) {
-                    await taBortKod(btn.dataset.foretag, btn.dataset.projekt, btn.dataset.leverantor, btn.dataset.del, btn.dataset.kod);
-                    await rendera();
-                    if (uppdateringsCallback) uppdateringsCallback();
-                }
-            });
-        });
-        document.getElementById('nyttForetagBtn')?.addEventListener('click', async () => {
-            const nytt = prompt("Nytt företagsnamn:");
-            if (nytt && await laggTillForetag(nytt)) {
-                await rendera();
+                } else alert("Kunde inte lägga till. Finns redan eller ogiltigt.");
+            };
+        }
+    }
+
+    // Nytt företag
+    const nyttForetagBtn = document.getElementById('nyttForetagFullBtn');
+    if (nyttForetagBtn) {
+        nyttForetagBtn.onclick = async function() {
+            const newName = prompt("Ange nytt företagsnamn:");
+            if (newName && await laggTillForetag(newName)) {
+                await laddaOchRenderaTräd();
                 if (uppdateringsCallback) uppdateringsCallback();
-            } else alert("Företaget finns redan eller ogiltigt.");
-        });
-        document.getElementById('stangModalBtn')?.addEventListener('click', () => {
+            } else alert("Kunde inte lägga till företag.");
+        };
+    }
+
+    // Stäng-knapp
+    const stangBtn = document.getElementById('stangFullModalBtn');
+    if (stangBtn) {
+        stangBtn.onclick = function() {
             modal.remove();
             if (efterStangningCallback) efterStangningCallback();
-        });
-    };
-    modal.innerHTML = '<div class="modal-innehall" style="background:white; border-radius:1.5rem; width:90%; max-width:800px; max-height:85vh; overflow-y:auto; padding:1.5rem;"></div>';
-    document.body.appendChild(modal);
-    rendera();
+        };
+    }
+
+    // Ladda trädet
+    laddaOchRenderaTräd();
 }
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
