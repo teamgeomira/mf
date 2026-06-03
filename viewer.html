@@ -265,6 +265,10 @@
             🏷️ Kod: <strong class="code-badge">${escapeHtml(originalKod)}</strong></p>
         `;
         
+        const data = await laddaFranFirebase();
+        if (!data || !data.filer || Object.keys(data.filer).length === 0) {
+            document.getElementById('content').innerHTML = '<div class="no-files"><i class="fas fa-folder-open"></i><p>Inga underlag hittades för denna kombination</p></div>';
+            return;
         }
         if (data.beskrivning) {
             document.getElementById('descriptionContainer').innerHTML = `<div class="description"><i class="fas fa-info-circle"></i> ${escapeHtml(data.beskrivning)}</div>`;
