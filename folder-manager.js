@@ -22,11 +22,8 @@
     else initViewerPanel();
 
     async function initAdminPanel() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupAdminUI);
-        } else {
-            setupAdminUI();
-        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupAdminUI);
+        else setupAdminUI();
     }
 
     async function setupAdminUI() {
@@ -114,13 +111,11 @@
     async function visaMappTrädAdmin(db, foretag, projekt, leverantor, del, kod) {
         const container = document.getElementById('folderTreeContainer');
         if (!container) return;
-
         const mappSökväg = 'folder_structure/' + rensaNyckel(foretag) + '/' + rensaNyckel(projekt) + '/' + rensaNyckel(leverantor) + '/' + rensaNyckel(del) + '/' + rensaNyckel(kod);
 
         try {
             const mappSnap = await db.ref(mappSökväg).once('value');
             const mappar = mappSnap.val() || {};
-
             let html = '<div style="margin-bottom: 1rem;">';
 
             if (Object.keys(mappar).length === 0) {
@@ -133,7 +128,6 @@
                     const filerIMapp = mappData.files || {};
                     const antalFiler = Object.keys(filerIMapp).length;
                     const uniktId = 'adminFolder_' + mappId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-
                     html += '<div class="folder-item" style="margin: 0.5rem 0; border: 1px solid #e2edf5; border-radius: 0.8rem; background: #ffffff;">';
                     html += '<div class="folder-header" data-target="' + uniktId + '" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.8rem; cursor: pointer; background: #f8fafc; border-radius: 0.8rem;">';
                     html += '<div><i class="fas fa-folder" style="color: #e67e22;"></i><strong style="margin-left: 0.3rem;">📁 ' + escapeHtml(mappNamn) + '</strong><span style="font-size: 0.7rem; color: #6c8dab; margin-left: 0.5rem;">(' + antalFiler + ' filer)</span></div>';
@@ -173,12 +167,11 @@
 
     function visaFilRad(fil, filId, mappId, sökväg) {
         const ikonData = hamtaFilIkonOchFärg(fil.filename);
-        const ikon = ikonData[0], färg = ikonData[1];
         const storlek = formateraStorlek(fil.size);
         const datum = new Date(fil.date).toLocaleDateString('sv-SE');
         return '<div class="file-item-in-tree" style="display: flex; justify-content: space-between; align-items: center; background: #f0f6fc; margin: 0.3rem 0; padding: 0.4rem 0.6rem; border-radius: 0.6rem;">' +
             '<div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">' +
-            '<i class="fas ' + ikon + '" style="color: ' + färg + ';"></i>' +
+            '<i class="fas ' + ikonData[0] + '" style="color: ' + ikonData[1] + ';"></i>' +
             '<span style="font-weight: 500;">' + escapeHtml(fil.filename) + '</span>' +
             '<span style="font-size: 0.7rem; color: #6c8dab;">' + storlek + '</span>' +
             '<span style="font-size: 0.7rem; color: #6c8dab;">' + datum + '</span>' +
@@ -200,7 +193,6 @@
                 });
             };
         });
-
         container.querySelectorAll('.ta-bort-mapp').forEach(function(knapp) {
             knapp.onclick = async function(e) {
                 e.stopPropagation();
@@ -212,15 +204,12 @@
                 }
             };
         });
-
         container.querySelectorAll('.visa-fil').forEach(function(knapp) {
             knapp.onclick = function(e) { e.stopPropagation(); window.open(knapp.dataset.url, '_blank'); };
         });
-
         container.querySelectorAll('.ladda-ner-fil').forEach(function(knapp) {
             knapp.onclick = function(e) { e.stopPropagation(); laddaNerFil(knapp.dataset.url, knapp.dataset.name); };
         });
-
         container.querySelectorAll('.ta-bort-fil').forEach(function(knapp) {
             knapp.onclick = async function(e) {
                 e.stopPropagation();
@@ -241,7 +230,7 @@
         input.onchange = async function(e) {
             const filer = Array.from(e.target.files);
             if (filer.length === 0) return;
-            visaMeddelande('📤 Laddar upp ' + filer.length + ' fil(er) till mappen "' + mappNamn + '"...');
+            visaMeddelande('📤 Laddar upp ' + filer.length + ' fil(er)...');
             let lyckade = 0;
             for (const fil of filer) {
                 const ok = await laddaUppFilTillCloudinaryOchSpara(db, fil, foretag, projekt, leverantor, del, kod, mappNamn);
@@ -258,12 +247,10 @@
         const tidsstämpel = Date.now();
         const säkertNamn = fil.name.replace(/[^a-zA-Z0-9åäöÅÄÖ.\-]/g, '_');
         const cloudMapp = 'underlag/' + rensaNyckel(foretag) + '/' + rensaNyckel(projekt) + '/' + rensaNyckel(leverantor) + '/' + rensaNyckel(del) + '/' + rensaNyckel(kod) + '/' + rensaNyckel(mappNamn);
-        const publicId = cloudMapp + '/' + tidsstämpel + '_' + säkertNamn;
         formData.append('file', fil);
         formData.append('upload_preset', 'team01');
-        formData.append('public_id', publicId);
+        formData.append('public_id', cloudMapp + '/' + tidsstämpel + '_' + säkertNamn);
         formData.append('resource_type', 'auto');
-
         try {
             const svar = await fetch('https://api.cloudinary.com/v1_1/dc1zqri3o/auto/upload', { method: 'POST', body: formData });
             const data = await svar.json();
@@ -271,20 +258,9 @@
             const nedladdningsUrl = data.secure_url + (data.secure_url.includes('?') ? '&fl_attachment' : '?fl_attachment');
             const mappLagring = 'folder_structure/' + rensaNyckel(foretag) + '/' + rensaNyckel(projekt) + '/' + rensaNyckel(leverantor) + '/' + rensaNyckel(del) + '/' + rensaNyckel(kod) + '/' + rensaNyckel(mappNamn) + '/files';
             const filId = Date.now() + '_' + fil.name.replace(/[^a-zA-Z0-9]/g, '_');
-            await db.ref(mappLagring + '/' + filId).set({
-                filename: fil.name,
-                size: fil.size,
-                date: new Date().toISOString(),
-                previewUrl: data.secure_url,
-                downloadUrl: nedladdningsUrl,
-                folder: mappNamn
-            });
+            await db.ref(mappLagring + '/' + filId).set({ filename: fil.name, size: fil.size, date: new Date().toISOString(), previewUrl: data.secure_url, downloadUrl: nedladdningsUrl, folder: mappNamn });
             return true;
-        } catch (fel) {
-            console.error(fel);
-            visaMeddelande('❌ Misslyckades med ' + fil.name, true);
-            return false;
-        }
+        } catch (fel) { console.error(fel); visaMeddelande('❌ Misslyckades med ' + fil.name, true); return false; }
     }
 
     async function skapaMappIDatabas(db, foretag, projekt, leverantor, del, kod, mappNamn) {
@@ -296,23 +272,18 @@
             await db.ref(sökväg + '/' + mappId).set({ name: mappNamn, createdAt: new Date().toISOString(), files: {} });
             visaMeddelande('✅ Mappen "' + mappNamn + '" skapad');
             return true;
-        } catch (fel) {
-            visaMeddelande('❌ Kunde inte skapa mapp: ' + fel.message, true);
-            return false;
-        }
+        } catch (fel) { visaMeddelande('❌ ' + fel.message, true); return false; }
     }
 
     function laggTillMappUppladdningsKnapp(db, uppdateraCallback) {
         const dropzone = document.querySelector('.dropzone');
         if (!dropzone || document.getElementById('fullFolderUploadBtn')) return;
-
         const knapp = document.createElement('button');
         knapp.id = 'fullFolderUploadBtn';
         knapp.type = 'button';
         knapp.className = 'btn-secondary';
         knapp.style.cssText = 'margin: 0.5rem; padding: 0.5rem 1rem; background: #e67e22; color: white; border-radius: 2rem; border: none; cursor: pointer;';
         knapp.innerHTML = '<i class="fas fa-folder-open"></i> 📁 Ladda upp hel mapp';
-
         const mappInput = document.createElement('input');
         mappInput.type = 'file';
         mappInput.id = 'fullFolderInput';
@@ -320,9 +291,7 @@
         mappInput.webkitdirectory = true;
         mappInput.directory = true;
         mappInput.style.display = 'none';
-
         knapp.onclick = function() { mappInput.click(); };
-
         mappInput.addEventListener('change', async function(e) {
             const filer = Array.from(e.target.files);
             if (filer.length === 0) return;
@@ -346,7 +315,6 @@
             if (typeof window.laddaBefintligaFiler === 'function') window.laddaBefintligaFiler();
             mappInput.value = '';
         });
-
         const förstaBtn = dropzone.querySelector('.btn-secondary');
         if (förstaBtn) dropzone.insertBefore(knapp, förstaBtn);
         else dropzone.appendChild(knapp);
@@ -354,11 +322,8 @@
     }
 
     async function initViewerPanel() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupViewerUI);
-        } else {
-            setupViewerUI();
-        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupViewerUI);
+        else setupViewerUI();
     }
 
     async function setupViewerUI() {
@@ -369,19 +334,15 @@
             const leverantor = urlParams.get('supplier');
             const del = urlParams.get('part');
             const kod = urlParams.get('code');
-
             if (!foretag || !projekt || !leverantor || !del || !kod) {
                 const innehåll = document.getElementById('content');
                 if (innehåll) innehåll.innerHTML = '<div class="error"><i class="fas fa-exclamation-triangle"></i><p>Ogiltig länk.</p></div>';
                 return;
             }
-
             const mappSökväg = 'folder_structure/' + rensaNyckel(foretag) + '/' + rensaNyckel(projekt) + '/' + rensaNyckel(leverantor) + '/' + rensaNyckel(del) + '/' + rensaNyckel(kod);
-
             try {
                 const mappSnap = await db.ref(mappSökväg).once('value');
                 const mappar = mappSnap.val() || {};
-
                 let treeContainer = document.getElementById('viewerFolderTree');
                 if (!treeContainer) {
                     const card = document.querySelector('.card');
@@ -393,9 +354,7 @@
                         treeContainer = treeDiv;
                     } else return;
                 }
-
                 let html = '<div style="margin-bottom: 0.5rem;"><strong><i class="fas fa-folder-tree"></i> Mappstruktur</strong></div>';
-
                 if (Object.keys(mappar).length > 0) {
                     for (const mappId of Object.keys(mappar)) {
                         const mappData = mappar[mappId];
@@ -403,7 +362,6 @@
                         const filerIMapp = mappData.files || {};
                         const antalFiler = Object.keys(filerIMapp).length;
                         const uniktId = 'viewerFolder_' + mappId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-
                         html += '<div style="margin-bottom: 0.8rem; border: 1px solid #e2edf5; border-radius: 0.8rem; background: #ffffff;">';
                         html += '<div class="folder-header" data-target="' + uniktId + '" style="display: flex; align-items: center; padding: 0.5rem 0.8rem; cursor: pointer; background: #f0f6fc; border-radius: 0.8rem;">';
                         html += '<i class="fas fa-folder" style="color: #e67e22; margin-right: 0.5rem;"></i>';
@@ -424,13 +382,10 @@
                 } else {
                     html += '<div style="color: #999;"><i class="fas fa-info-circle"></i> Inga mappar har skapats än.</div>';
                 }
-
                 treeContainer.innerHTML = html;
-
                 treeContainer.querySelectorAll('.folder-header').forEach(function(header) {
                     header.onclick = function() {
-                        const targetId = header.dataset.target;
-                        const target = document.getElementById(targetId);
+                        const target = document.getElementById(header.dataset.target);
                         if (target) {
                             const isHidden = target.style.display === 'none';
                             target.style.display = isHidden ? 'block' : 'none';
@@ -445,19 +400,18 @@
             } catch (fel) {
                 console.error(fel);
                 const treeContainer = document.getElementById('viewerFolderTree');
-                if (treeContainer) treeContainer.innerHTML = '<div style="color: #e74c3c;">❌ Kunde inte ladda mappstruktur: ' + fel.message + '</div>';
+                if (treeContainer) treeContainer.innerHTML = '<div style="color: #e74c3c;">❌ ' + fel.message + '</div>';
             }
         });
     }
 
     function visaFilRadViewer(fil) {
         const ikonData = hamtaFilIkonOchFärg(fil.filename);
-        const ikon = ikonData[0], färg = ikonData[1];
         const storlek = formateraStorlek(fil.size);
         const datum = new Date(fil.date).toLocaleDateString('sv-SE');
         return '<div style="display: flex; justify-content: space-between; align-items: center; background: #f0f6fc; margin: 0.3rem 0; padding: 0.4rem 0.6rem; border-radius: 0.6rem;">' +
             '<div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">' +
-            '<i class="fas ' + ikon + '" style="color: ' + färg + ';"></i>' +
+            '<i class="fas ' + ikonData[0] + '" style="color: ' + ikonData[1] + ';"></i>' +
             '<span>' + escapeHtml(fil.filename) + '</span>' +
             '<span style="font-size: 0.7rem; color: #6c8dab;">' + storlek + '</span>' +
             '<span style="font-size: 0.7rem; color: #6c8dab;">' + datum + '</span>' +
@@ -476,16 +430,11 @@
             const blob = await svar.blob();
             const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = namn;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            a.href = blobUrl; a.download = namn;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
             window.URL.revokeObjectURL(blobUrl);
             visaMeddelande('✅ ' + namn + ' nedladdad');
-        } catch (fel) {
-            visaMeddelande('❌ Kunde inte ladda ner ' + namn, true);
-        }
+        } catch (fel) { visaMeddelande('❌ Kunde inte ladda ner ' + namn, true); }
     }
 
     function rensaNyckel(str) {
@@ -514,7 +463,7 @@
 
     function hamtaFilIkonOchFärg(filnamn) {
         const ext = (filnamn || '').split('.').pop().toLowerCase();
-        const mappning = {
+        const m = {
             pdf: ['fa-file-pdf', '#e74c3c'],
             doc: ['fa-file-word', '#2b579a'], docx: ['fa-file-word', '#2b579a'],
             xls: ['fa-file-excel', '#217346'], xlsx: ['fa-file-excel', '#217346'],
@@ -539,7 +488,7 @@
             mpp: ['fa-tasks', '#2c7cb6'], mpt: ['fa-tasks', '#2c7cb6'],
             msg: ['fa-envelope', '#2980b9'], eml: ['fa-envelope', '#2980b9'], vcf: ['fa-address-card', '#6c8dab']
         };
-        return mappning[ext] || ['fa-file', '#5a8eb0'];
+        return m[ext] || ['fa-file', '#5a8eb0'];
     }
 
     function visaMeddelande(msg, arFel) {
