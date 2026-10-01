@@ -7,11 +7,13 @@ function rensaNyckel(str) {
 }
 
 function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>]/g, function(m) {
+    if (!str && str !== 0) return '';
+    return String(str).replace(/[&<>"']/g, function(m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        if (m === "'") return '&#39;';
         return m;
     });
 }
@@ -22,39 +24,205 @@ function initieraHierarki(databas, callback) {
     console.log("✅ Hierarkimodul initierad");
 }
 
+function visaTextInmatning(meddelande, standardVarde) {
+    return new Promise(function(resolve) {
+        const overlay = document.createElement('div');
+        overlay.setAttribute('data-dialog', 'true');
+        overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 99999; backdrop-filter: blur(2px);';
+
+        const box = document.createElement('div');
+        box.style.cssText = 'background: white; border-radius: 1.2rem; padding: 1.5rem; min-width: 320px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);';
+
+        const msg = document.createElement('div');
+        msg.style.cssText = 'font-size: 1rem; font-weight: 600; color: #1b2f44; margin-bottom: 0.8rem;';
+        msg.textContent = meddelande;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = standardVarde || '';
+        input.style.cssText = 'width: 100%; padding: 0.7rem 1rem; border: 2px solid #cbdde9; border-radius: 0.8rem; font-size: 1rem; font-family: inherit; outline: none; margin-bottom: 1rem; box-sizing: border-box;';
+
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display: flex; gap: 0.5rem; justify-content: flex-end;';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.textContent = 'Avbryt';
+        cancelBtn.style.cssText = 'padding: 0.6rem 1.2rem; border-radius: 2rem; border: none; background: #e2e8f0; color: #2c3e50; font-weight: 600; cursor: pointer; font-size: 0.9rem; font-family: inherit;';
+
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.textContent = 'OK';
+        okBtn.style.cssText = 'padding: 0.6rem 1.2rem; border-radius: 2rem; border: none; background: #2c7cb6; color: white; font-weight: 600; cursor: pointer; font-size: 0.9rem; font-family: inherit;';
+
+        btnRow.appendChild(cancelBtn);
+        btnRow.appendChild(okBtn);
+        box.appendChild(msg);
+        box.appendChild(input);
+        box.appendChild(btnRow);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        let klar = false;
+        function stang(varde) {
+            if (klar) return;
+            klar = true;
+            try { document.body.removeChild(overlay); } catch(e) {}
+            document.removeEventListener('keydown', keyHandler);
+            resolve(varde);
+        }
+
+        function keyHandler(e) {
+            if (e.key === 'Enter') { e.preventDefault(); stang(input.value); }
+            else if (e.key === 'Escape') { e.preventDefault(); stang(null); }
+        }
+
+        okBtn.addEventListener('click', function() { stang(input.value); });
+        cancelBtn.addEventListener('click', function() { stang(null); });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) stang(null); });
+        document.addEventListener('keydown', keyHandler);
+
+        setTimeout(function() { input.focus(); input.select(); }, 50);
+    });
+}
+
+function visaBekraftelse(meddelande) {
+    return new Promise(function(resolve) {
+        const overlay = document.createElement('div');
+        overlay.setAttribute('data-dialog', 'true');
+        overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 99999; backdrop-filter: blur(2px);';
+
+        const box = document.createElement('div');
+        box.style.cssText = 'background: white; border-radius: 1.2rem; padding: 1.5rem; min-width: 320px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);';
+
+        const msg = document.createElement('div');
+        msg.style.cssText = 'font-size: 1rem; color: #1b2f44; margin-bottom: 1.2rem; line-height: 1.5;';
+        msg.textContent = meddelande;
+
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display: flex; gap: 0.5rem; justify-content: flex-end;';
+
+        const noBtn = document.createElement('button');
+        noBtn.type = 'button';
+        noBtn.textContent = 'Avbryt';
+        noBtn.style.cssText = 'padding: 0.6rem 1.2rem; border-radius: 2rem; border: none; background: #e2e8f0; color: #2c3e50; font-weight: 600; cursor: pointer; font-size: 0.9rem; font-family: inherit;';
+
+        const yesBtn = document.createElement('button');
+        yesBtn.type = 'button';
+        yesBtn.textContent = 'Ja, ta bort';
+        yesBtn.style.cssText = 'padding: 0.6rem 1.2rem; border-radius: 2rem; border: none; background: #b91c2c; color: white; font-weight: 600; cursor: pointer; font-size: 0.9rem; font-family: inherit;';
+
+        btnRow.appendChild(noBtn);
+        btnRow.appendChild(yesBtn);
+        box.appendChild(msg);
+        box.appendChild(btnRow);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        let klar = false;
+        function stang(varde) {
+            if (klar) return;
+            klar = true;
+            try { document.body.removeChild(overlay); } catch(e) {}
+            document.removeEventListener('keydown', keyHandler);
+            resolve(varde);
+        }
+
+        function keyHandler(e) {
+            if (e.key === 'Enter') { e.preventDefault(); stang(true); }
+            else if (e.key === 'Escape') { e.preventDefault(); stang(false); }
+        }
+
+        yesBtn.addEventListener('click', function() { stang(true); });
+        noBtn.addEventListener('click', function() { stang(false); });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) stang(false); });
+        document.addEventListener('keydown', keyHandler);
+
+        setTimeout(function() { yesBtn.focus(); }, 50);
+    });
+}
+
+function visaInfo(meddelande) {
+    return new Promise(function(resolve) {
+        const overlay = document.createElement('div');
+        overlay.setAttribute('data-dialog', 'true');
+        overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 99999; backdrop-filter: blur(2px);';
+
+        const box = document.createElement('div');
+        box.style.cssText = 'background: white; border-radius: 1.2rem; padding: 1.5rem; min-width: 320px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);';
+
+        const msg = document.createElement('div');
+        msg.style.cssText = 'font-size: 1rem; color: #1b2f44; margin-bottom: 1.2rem; line-height: 1.5;';
+        msg.textContent = meddelande;
+
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display: flex; justify-content: flex-end;';
+
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.textContent = 'OK';
+        okBtn.style.cssText = 'padding: 0.6rem 1.2rem; border-radius: 2rem; border: none; background: #2c7cb6; color: white; font-weight: 600; cursor: pointer; font-size: 0.9rem; font-family: inherit;';
+
+        btnRow.appendChild(okBtn);
+        box.appendChild(msg);
+        box.appendChild(btnRow);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        let klar = false;
+        function stang() {
+            if (klar) return;
+            klar = true;
+            try { document.body.removeChild(overlay); } catch(e) {}
+            document.removeEventListener('keydown', keyHandler);
+            resolve();
+        }
+
+        function keyHandler(e) {
+            if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); stang(); }
+        }
+
+        okBtn.addEventListener('click', stang);
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) stang(); });
+        document.addEventListener('keydown', keyHandler);
+
+        setTimeout(function() { okBtn.focus(); }, 50);
+    });
+}
+
 async function hamtaForetag() {
     if (!databasReferens) return [];
     try {
         const snap = await databasReferens.ref('foretag').once('value');
         const data = snap.val();
         if (!data) return [];
-        return Object.values(data).map(f => f.namn).sort();
+        return Object.values(data).map(function(f) { return f.namn; }).sort();
     } catch(e) { console.error(e); return []; }
 }
 
 async function laggTillForetag(foretag) {
-    if (!foretag?.trim() || !databasReferens) return false;
+    if (!foretag || !foretag.trim() || !databasReferens) return false;
     const namn = foretag.trim();
     const nyckel = rensaNyckel(namn);
     try {
-        const finns = await databasReferens.ref(`foretag/${nyckel}`).once('value');
+        const finns = await databasReferens.ref('foretag/' + nyckel).once('value');
         if (finns.exists()) return false;
-        await databasReferens.ref(`foretag/${nyckel}`).set({ namn, projekt: {} });
+        await databasReferens.ref('foretag/' + nyckel).set({ namn: namn, projekt: {} });
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { console.error(e); return false; }
 }
 
 async function redigeraForetag(gammalt, nytt) {
-    if (!gammalt || !nytt?.trim() || !databasReferens) return false;
+    if (!gammalt || !nytt || !nytt.trim() || !databasReferens) return false;
     if (gammalt === nytt.trim()) return true;
     const gammalNyckel = rensaNyckel(gammalt);
     const nyNyckel = rensaNyckel(nytt.trim());
     try {
-        const data = (await databasReferens.ref(`foretag/${gammalNyckel}`).once('value')).val();
+        const data = (await databasReferens.ref('foretag/' + gammalNyckel).once('value')).val();
         if (!data) return false;
-        await databasReferens.ref(`foretag/${nyNyckel}`).set({ namn: nytt.trim(), projekt: data.projekt || {} });
-        await databasReferens.ref(`foretag/${gammalNyckel}`).remove();
+        await databasReferens.ref('foretag/' + nyNyckel).set({ namn: nytt.trim(), projekt: data.projekt || {} });
+        await databasReferens.ref('foretag/' + gammalNyckel).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { console.error(e); return false; }
@@ -63,7 +231,7 @@ async function redigeraForetag(gammalt, nytt) {
 async function taBortForetag(foretag) {
     if (!foretag || !databasReferens) return false;
     try {
-        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}`).remove();
+        await databasReferens.ref('foretag/' + rensaNyckel(foretag)).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -72,44 +240,44 @@ async function taBortForetag(foretag) {
 async function filtreraForetag(sok) {
     const alla = await hamtaForetag();
     if (!sok) return alla;
-    return alla.filter(f => f.toLowerCase().includes(sok.toLowerCase()));
+    return alla.filter(function(f) { return f.toLowerCase().indexOf(sok.toLowerCase()) !== -1; });
 }
 
 async function hamtaProjekt(foretag) {
     if (!foretag || !databasReferens) return [];
     try {
-        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt`).once('value');
+        const snap = await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt').once('value');
         const data = snap.val();
         if (!data) return [];
-        return Object.values(data).map(p => p.namn).sort();
+        return Object.values(data).map(function(p) { return p.namn; }).sort();
     } catch(e) { return []; }
 }
 
 async function laggTillProjekt(foretag, projekt) {
-    if (!foretag || !projekt?.trim() || !databasReferens) return false;
+    if (!foretag || !projekt || !projekt.trim() || !databasReferens) return false;
     const fNyckel = rensaNyckel(foretag);
     const pNamn = projekt.trim();
     const pNyckel = rensaNyckel(pNamn);
     try {
-        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}`).once('value');
+        const finns = await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel).once('value');
         if (finns.exists()) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}`).set({ namn: pNamn, leverantörer: {} });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel).set({ namn: pNamn, leverantörer: {} });
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
 }
 
 async function redigeraProjekt(foretag, gammalt, nytt) {
-    if (!foretag || !gammalt || !nytt?.trim() || !databasReferens) return false;
+    if (!foretag || !gammalt || !nytt || !nytt.trim() || !databasReferens) return false;
     if (gammalt === nytt.trim()) return true;
     const fNyckel = rensaNyckel(foretag);
     const gNyckel = rensaNyckel(gammalt);
     const nNyckel = rensaNyckel(nytt.trim());
     try {
-        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${gNyckel}`).once('value')).val();
+        const data = (await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + gNyckel).once('value')).val();
         if (!data) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${nNyckel}`).set({ namn: nytt.trim(), leverantörer: data.leverantörer || {} });
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${gNyckel}`).remove();
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + nNyckel).set({ namn: nytt.trim(), leverantörer: data.leverantörer || {} });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + gNyckel).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -118,7 +286,7 @@ async function redigeraProjekt(foretag, gammalt, nytt) {
 async function taBortProjekt(foretag, projekt) {
     if (!foretag || !projekt || !databasReferens) return false;
     try {
-        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}`).remove();
+        await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt/' + rensaNyckel(projekt)).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -127,40 +295,40 @@ async function taBortProjekt(foretag, projekt) {
 async function hamtaLeverantörer(foretag, projekt) {
     if (!foretag || !projekt || !databasReferens) return [];
     try {
-        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer`).once('value');
+        const snap = await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt/' + rensaNyckel(projekt) + '/leverantörer').once('value');
         const data = snap.val();
         if (!data) return [];
-        return Object.values(data).map(l => l.namn).sort();
+        return Object.values(data).map(function(l) { return l.namn; }).sort();
     } catch(e) { return []; }
 }
 
 async function laggTillLeverantör(foretag, projekt, leverantor) {
-    if (!foretag || !projekt || !leverantor?.trim() || !databasReferens) return false;
+    if (!foretag || !projekt || !leverantor || !leverantor.trim() || !databasReferens) return false;
     const fNyckel = rensaNyckel(foretag);
     const pNyckel = rensaNyckel(projekt);
     const lNamn = leverantor.trim();
     const lNyckel = rensaNyckel(lNamn);
     try {
-        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}`).once('value');
+        const finns = await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel).once('value');
         if (finns.exists()) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}`).set({ namn: lNamn, delar: {} });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel).set({ namn: lNamn, delar: {} });
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
 }
 
 async function redigeraLeverantör(foretag, projekt, gammal, nytt) {
-    if (!foretag || !projekt || !gammal || !nytt?.trim() || !databasReferens) return false;
+    if (!foretag || !projekt || !gammal || !nytt || !nytt.trim() || !databasReferens) return false;
     if (gammal === nytt.trim()) return true;
     const fNyckel = rensaNyckel(foretag);
     const pNyckel = rensaNyckel(projekt);
     const gNyckel = rensaNyckel(gammal);
     const nNyckel = rensaNyckel(nytt.trim());
     try {
-        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${gNyckel}`).once('value')).val();
+        const data = (await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + gNyckel).once('value')).val();
         if (!data) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${nNyckel}`).set({ namn: nytt.trim(), delar: data.delar || {} });
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${gNyckel}`).remove();
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + nNyckel).set({ namn: nytt.trim(), delar: data.delar || {} });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + gNyckel).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -169,7 +337,7 @@ async function redigeraLeverantör(foretag, projekt, gammal, nytt) {
 async function taBortLeverantör(foretag, projekt, leverantor) {
     if (!foretag || !projekt || !leverantor || !databasReferens) return false;
     try {
-        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}`).remove();
+        await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt/' + rensaNyckel(projekt) + '/leverantörer/' + rensaNyckel(leverantor)).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -178,31 +346,31 @@ async function taBortLeverantör(foretag, projekt, leverantor) {
 async function hamtaDelar(foretag, projekt, leverantor) {
     if (!foretag || !projekt || !leverantor || !databasReferens) return [];
     try {
-        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar`).once('value');
+        const snap = await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt/' + rensaNyckel(projekt) + '/leverantörer/' + rensaNyckel(leverantor) + '/delar').once('value');
         const data = snap.val();
         if (!data) return [];
-        return Object.values(data).map(d => d.namn).sort();
+        return Object.values(data).map(function(d) { return d.namn; }).sort();
     } catch(e) { return []; }
 }
 
 async function laggTillDel(foretag, projekt, leverantor, del) {
-    if (!foretag || !projekt || !leverantor || !del?.trim() || !databasReferens) return false;
+    if (!foretag || !projekt || !leverantor || !del || !del.trim() || !databasReferens) return false;
     const fNyckel = rensaNyckel(foretag);
     const pNyckel = rensaNyckel(projekt);
     const lNyckel = rensaNyckel(leverantor);
     const dNamn = del.trim();
     const dNyckel = rensaNyckel(dNamn);
     try {
-        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}`).once('value');
+        const finns = await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + dNyckel).once('value');
         if (finns.exists()) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}`).set({ namn: dNamn, koder: {} });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + dNyckel).set({ namn: dNamn, koder: {} });
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
 }
 
 async function redigeraDel(foretag, projekt, leverantor, gammal, nytt) {
-    if (!foretag || !projekt || !leverantor || !gammal || !nytt?.trim() || !databasReferens) return false;
+    if (!foretag || !projekt || !leverantor || !gammal || !nytt || !nytt.trim() || !databasReferens) return false;
     if (gammal === nytt.trim()) return true;
     const fNyckel = rensaNyckel(foretag);
     const pNyckel = rensaNyckel(projekt);
@@ -210,10 +378,10 @@ async function redigeraDel(foretag, projekt, leverantor, gammal, nytt) {
     const gNyckel = rensaNyckel(gammal);
     const nNyckel = rensaNyckel(nytt.trim());
     try {
-        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${gNyckel}`).once('value')).val();
+        const data = (await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + gNyckel).once('value')).val();
         if (!data) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${nNyckel}`).set({ namn: nytt.trim(), koder: data.koder || {} });
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${gNyckel}`).remove();
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + nNyckel).set({ namn: nytt.trim(), koder: data.koder || {} });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + gNyckel).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -222,7 +390,7 @@ async function redigeraDel(foretag, projekt, leverantor, gammal, nytt) {
 async function taBortDel(foretag, projekt, leverantor, del) {
     if (!foretag || !projekt || !leverantor || !del || !databasReferens) return false;
     try {
-        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}`).remove();
+        await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt/' + rensaNyckel(projekt) + '/leverantörer/' + rensaNyckel(leverantor) + '/delar/' + rensaNyckel(del)).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -231,15 +399,15 @@ async function taBortDel(foretag, projekt, leverantor, del) {
 async function hamtaKoder(foretag, projekt, leverantor, del) {
     if (!foretag || !projekt || !leverantor || !del || !databasReferens) return [];
     try {
-        const snap = await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}/koder`).once('value');
+        const snap = await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt/' + rensaNyckel(projekt) + '/leverantörer/' + rensaNyckel(leverantor) + '/delar/' + rensaNyckel(del) + '/koder').once('value');
         const data = snap.val();
         if (!data) return [];
-        return Object.values(data).map(k => k.namn).sort();
+        return Object.values(data).map(function(k) { return k.namn; }).sort();
     } catch(e) { return []; }
 }
 
 async function laggTillKod(foretag, projekt, leverantor, del, kod) {
-    if (!foretag || !projekt || !leverantor || !del || !kod?.trim() || !databasReferens) return false;
+    if (!foretag || !projekt || !leverantor || !del || !kod || !kod.trim() || !databasReferens) return false;
     const fNyckel = rensaNyckel(foretag);
     const pNyckel = rensaNyckel(projekt);
     const lNyckel = rensaNyckel(leverantor);
@@ -247,16 +415,16 @@ async function laggTillKod(foretag, projekt, leverantor, del, kod) {
     const kNamn = kod.trim().toUpperCase();
     const kNyckel = rensaNyckel(kNamn);
     try {
-        const finns = await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${kNyckel}`).once('value');
+        const finns = await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + dNyckel + '/koder/' + kNyckel).once('value');
         if (finns.exists()) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${kNyckel}`).set({ namn: kNamn });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + dNyckel + '/koder/' + kNyckel).set({ namn: kNamn });
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
 }
 
 async function redigeraKod(foretag, projekt, leverantor, del, gammal, nytt) {
-    if (!foretag || !projekt || !leverantor || !del || !gammal || !nytt?.trim() || !databasReferens) return false;
+    if (!foretag || !projekt || !leverantor || !del || !gammal || !nytt || !nytt.trim() || !databasReferens) return false;
     if (gammal === nytt.trim().toUpperCase()) return true;
     const fNyckel = rensaNyckel(foretag);
     const pNyckel = rensaNyckel(projekt);
@@ -265,10 +433,10 @@ async function redigeraKod(foretag, projekt, leverantor, del, gammal, nytt) {
     const gNyckel = rensaNyckel(gammal);
     const nNyckel = rensaNyckel(nytt.trim().toUpperCase());
     try {
-        const data = (await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${gNyckel}`).once('value')).val();
+        const data = (await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + dNyckel + '/koder/' + gNyckel).once('value')).val();
         if (!data) return false;
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${nNyckel}`).set({ namn: nytt.trim().toUpperCase() });
-        await databasReferens.ref(`foretag/${fNyckel}/projekt/${pNyckel}/leverantörer/${lNyckel}/delar/${dNyckel}/koder/${gNyckel}`).remove();
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + dNyckel + '/koder/' + nNyckel).set({ namn: nytt.trim().toUpperCase() });
+        await databasReferens.ref('foretag/' + fNyckel + '/projekt/' + pNyckel + '/leverantörer/' + lNyckel + '/delar/' + dNyckel + '/koder/' + gNyckel).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -277,7 +445,7 @@ async function redigeraKod(foretag, projekt, leverantor, del, gammal, nytt) {
 async function taBortKod(foretag, projekt, leverantor, del, kod) {
     if (!foretag || !projekt || !leverantor || !del || !kod || !databasReferens) return false;
     try {
-        await databasReferens.ref(`foretag/${rensaNyckel(foretag)}/projekt/${rensaNyckel(projekt)}/leverantörer/${rensaNyckel(leverantor)}/delar/${rensaNyckel(del)}/koder/${rensaNyckel(kod)}`).remove();
+        await databasReferens.ref('foretag/' + rensaNyckel(foretag) + '/projekt/' + rensaNyckel(projekt) + '/leverantörer/' + rensaNyckel(leverantor) + '/delar/' + rensaNyckel(del) + '/koder/' + rensaNyckel(kod)).remove();
         if (uppdateringsCallback) await uppdateringsCallback();
         return true;
     } catch(e) { return false; }
@@ -285,6 +453,7 @@ async function taBortKod(foretag, projekt, leverantor, del, kod) {
 
 function visaModalHantering(efterStangningCallback) {
     const modal = document.createElement('div');
+    modal.id = 'hierarchyModalOverlay';
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(4px);';
 
     const modalContent = document.createElement('div');
@@ -311,19 +480,25 @@ function visaModalHantering(efterStangningCallback) {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
-    stangBtn.onclick = function() {
-        modal.remove();
-        if (efterStangningCallback) efterStangningCallback();
-    };
+    stangBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        try { document.body.removeChild(modal); } catch(err) {}
+        if (efterStangningCallback) {
+            try { efterStangningCallback(); } catch(err) { console.error(err); }
+        }
+    });
 
     async function laddaOchRenderaTrad() {
         treeContainer.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-pulse"></i> Laddar hierarki...</div>';
 
-        const foretagLista = await hamtaForetag();
+        let foretagLista = [];
+        try { foretagLista = await hamtaForetag(); } catch (err) { foretagLista = []; }
+
         let html = '<div class="hierarchy-tree" style="font-size:0.95rem;">';
 
         if (foretagLista.length === 0) {
-            html += '<div style="text-align:center; padding:2rem; color:#9bb3c9;"><i class="fas fa-info-circle" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>Inga företag har lagts till än. Klicka på "Nytt företag" nedan.</div>';
+            html += '<div style="text-align:center; padding:2rem; color:#9bb3c9;"><i class="fas fa-info-circle" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>Inga företag har lagts till än. Klicka på "Nytt företag" nedan för att skapa ett.</div>';
         }
 
         for (const f of foretagLista) {
@@ -401,15 +576,110 @@ function visaModalHantering(efterStangningCallback) {
             html += '</div></div>';
         }
         html += '</div>';
-        html += '<div style="margin-top: 1rem; padding: 0.8rem; background: #f0f6fc; border-radius: 1rem; text-align: center;">';
-        html += '<button id="nyttForetagFullBtn" type="button" class="btn-success" style="padding:0.6rem 1.2rem; cursor:pointer; font-size:0.95rem; border:none; background:#10b981; color:white; border-radius:2rem; font-weight:600;"><i class="fas fa-plus-circle"></i> Nytt företag</button>';
+        html += '<div style="margin-top: 1rem; padding: 1rem; background: #f0f6fc; border-radius: 1rem; text-align: center;">';
+        html += '<button id="nyttForetagFullBtn" type="button" class="btn-success" style="padding:0.7rem 1.5rem; cursor:pointer; font-size:1rem; border:none; background:#10b981; color:white; border-radius:2rem; font-weight:600;"><i class="fas fa-plus-circle"></i> Nytt företag</button>';
         html += '</div>';
+
         treeContainer.innerHTML = html;
     }
 
     treeContainer.addEventListener('click', async function(e) {
-        const header = e.target.closest('.tree-header');
-        if (header && !e.target.closest('button')) {
+        const target = e.target;
+
+        const nyttBtn = target.closest ? target.closest('#nyttForetagFullBtn') : null;
+        if (nyttBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const newName = await visaTextInmatning('Ange nytt företagsnamn:', '');
+            if (newName === null) return;
+            if (!newName.trim()) return;
+            const ok = await laggTillForetag(newName);
+            if (ok) {
+                await laddaOchRenderaTrad();
+            } else {
+                await visaInfo('Kunde inte lägga till företag. Det finns redan eller ogiltigt namn.');
+            }
+            return;
+        }
+
+        const editBtn = target.closest ? target.closest('.btn-edit') : null;
+        if (editBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const type = editBtn.dataset.type;
+            const foretag = editBtn.dataset.foretag;
+            const projekt = editBtn.dataset.projekt;
+            const leverantor = editBtn.dataset.leverantor;
+            const del = editBtn.dataset.del;
+            const currentName = editBtn.dataset.name;
+            const newName = await visaTextInmatning('Ange nytt namn för ' + type + ':', currentName);
+            if (newName === null || newName === currentName) return;
+            if (!newName.trim()) return;
+            let success = false;
+            if (type === 'company') success = await redigeraForetag(currentName, newName);
+            else if (type === 'project') success = await redigeraProjekt(foretag, currentName, newName);
+            else if (type === 'leverantor') success = await redigeraLeverantör(foretag, projekt, currentName, newName);
+            else if (type === 'del') success = await redigeraDel(foretag, projekt, leverantor, currentName, newName);
+            else if (type === 'kod') success = await redigeraKod(foretag, projekt, leverantor, del, currentName, newName);
+            if (success) {
+                await laddaOchRenderaTrad();
+            } else {
+                await visaInfo('Kunde inte ändra. Namnet finns redan eller ogiltigt.');
+            }
+            return;
+        }
+
+        const deleteBtn = target.closest ? target.closest('.btn-delete') : null;
+        if (deleteBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const type = deleteBtn.dataset.type;
+            const foretag = deleteBtn.dataset.foretag;
+            const projekt = deleteBtn.dataset.projekt;
+            const leverantor = deleteBtn.dataset.leverantor;
+            const del = deleteBtn.dataset.del;
+            const name = deleteBtn.dataset.name;
+            const okDelete = await visaBekraftelse('Ta bort ' + type + ' "' + name + '" och allt under det?');
+            if (!okDelete) return;
+            let success = false;
+            if (type === 'company') success = await taBortForetag(name);
+            else if (type === 'project') success = await taBortProjekt(foretag, name);
+            else if (type === 'leverantor') success = await taBortLeverantör(foretag, projekt, name);
+            else if (type === 'del') success = await taBortDel(foretag, projekt, leverantor, name);
+            else if (type === 'kod') success = await taBortKod(foretag, projekt, leverantor, del, name);
+            if (success) {
+                await laddaOchRenderaTrad();
+            }
+            return;
+        }
+
+        const addBtn = target.closest ? target.closest('.btn-add') : null;
+        if (addBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const type = addBtn.dataset.type;
+            const foretag = addBtn.dataset.foretag;
+            const projekt = addBtn.dataset.projekt;
+            const leverantor = addBtn.dataset.leverantor;
+            const del = addBtn.dataset.del;
+            const newName = await visaTextInmatning('Ange nytt ' + type + '-namn:', '');
+            if (newName === null) return;
+            if (!newName.trim()) return;
+            let success = false;
+            if (type === 'project') success = await laggTillProjekt(foretag, newName);
+            else if (type === 'leverantor') success = await laggTillLeverantör(foretag, projekt, newName);
+            else if (type === 'del') success = await laggTillDel(foretag, projekt, leverantor, newName);
+            else if (type === 'kod') success = await laggTillKod(foretag, projekt, leverantor, del, newName);
+            if (success) {
+                await laddaOchRenderaTrad();
+            } else {
+                await visaInfo('Kunde inte lägga till. Finns redan eller ogiltigt.');
+            }
+            return;
+        }
+
+        const header = target.closest ? target.closest('.tree-header') : null;
+        if (header) {
             const children = header.parentElement ? header.parentElement.querySelector('.tree-children') : null;
             if (children) {
                 const isHidden = children.style.display === 'none';
@@ -425,101 +695,8 @@ function visaModalHantering(efterStangningCallback) {
                     }
                 }
             }
-            return;
         }
-
-        const nyttBtn = e.target.closest('#nyttForetagFullBtn');
-        if (nyttBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            const newName = prompt("Ange nytt företagsnamn:");
-            if (!newName || !newName.trim()) return;
-            const ok = await laggTillForetag(newName);
-            if (ok) {
-                await laddaOchRenderaTrad();
-                if (uppdateringsCallback) await uppdateringsCallback();
-            } else {
-                alert("Kunde inte lägga till företag. Det finns redan eller ogiltigt namn.");
-            }
-            return;
-        }
-
-        const editBtn = e.target.closest('.btn-edit');
-        if (editBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            const type = editBtn.dataset.type;
-            const foretag = editBtn.dataset.foretag;
-            const projekt = editBtn.dataset.projekt;
-            const leverantor = editBtn.dataset.leverantor;
-            const del = editBtn.dataset.del;
-            const currentName = editBtn.dataset.name;
-            const newName = prompt('Ange nytt namn för ' + type + ':', currentName);
-            if (!newName || newName === currentName) return;
-            let success = false;
-            if (type === 'company') success = await redigeraForetag(currentName, newName);
-            else if (type === 'project') success = await redigeraProjekt(foretag, currentName, newName);
-            else if (type === 'leverantor') success = await redigeraLeverantör(foretag, projekt, currentName, newName);
-            else if (type === 'del') success = await redigeraDel(foretag, projekt, leverantor, currentName, newName);
-            else if (type === 'kod') success = await redigeraKod(foretag, projekt, leverantor, del, currentName, newName);
-            if (success) {
-                await laddaOchRenderaTrad();
-                if (uppdateringsCallback) await uppdateringsCallback();
-            } else {
-                alert("Kunde inte ändra. Namnet finns redan eller ogiltigt.");
-            }
-            return;
-        }
-
-        const deleteBtn = e.target.closest('.btn-delete');
-        if (deleteBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            const type = deleteBtn.dataset.type;
-            const foretag = deleteBtn.dataset.foretag;
-            const projekt = deleteBtn.dataset.projekt;
-            const leverantor = deleteBtn.dataset.leverantor;
-            const del = deleteBtn.dataset.del;
-            const name = deleteBtn.dataset.name;
-            if (!confirm('Ta bort ' + type + ' "' + name + '" och allt under det?')) return;
-            let success = false;
-            if (type === 'company') success = await taBortForetag(name);
-            else if (type === 'project') success = await taBortProjekt(foretag, name);
-            else if (type === 'leverantor') success = await taBortLeverantör(foretag, projekt, name);
-            else if (type === 'del') success = await taBortDel(foretag, projekt, leverantor, name);
-            else if (type === 'kod') success = await taBortKod(foretag, projekt, leverantor, del, name);
-            if (success) {
-                await laddaOchRenderaTrad();
-                if (uppdateringsCallback) await uppdateringsCallback();
-            }
-            return;
-        }
-
-        const addBtn = e.target.closest('.btn-add');
-        if (addBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            const type = addBtn.dataset.type;
-            const foretag = addBtn.dataset.foretag;
-            const projekt = addBtn.dataset.projekt;
-            const leverantor = addBtn.dataset.leverantor;
-            const del = addBtn.dataset.del;
-            const newName = prompt('Ange nytt ' + type + '-namn:');
-            if (!newName || !newName.trim()) return;
-            let success = false;
-            if (type === 'project') success = await laggTillProjekt(foretag, newName);
-            else if (type === 'leverantor') success = await laggTillLeverantör(foretag, projekt, newName);
-            else if (type === 'del') success = await laggTillDel(foretag, projekt, leverantor, newName);
-            else if (type === 'kod') success = await laggTillKod(foretag, projekt, leverantor, del, newName);
-            if (success) {
-                await laddaOchRenderaTrad();
-                if (uppdateringsCallback) await uppdateringsCallback();
-            } else {
-                alert("Kunde inte lägga till. Finns redan eller ogiltigt.");
-            }
-            return;
-        }
-    });
+    }, true);
 
     laddaOchRenderaTrad();
 }
